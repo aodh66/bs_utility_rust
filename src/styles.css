@@ -162,7 +162,7 @@ background: var(--exit-button-gradient)
 
 .snapshot-bottom {
   grid-column: 1 / 2;
-  grid-row: 2 / 3;
+  grid-row: 3 / 3;
 }
 
 .snapshot-notifications {
