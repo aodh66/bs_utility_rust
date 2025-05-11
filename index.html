@@ -9,151 +9,169 @@
   </head>
 
   <body>
-  <!-- * Title -->
-  <header>
-    <h1 class="header-title">Backup & Save Utility</h1>
-    <button type="button" class="button exit-button" id="exit-btn">Exit</button>
-  </header>
-
-
-  <main>
-    <!-- * Rolling Backup Section -->
-    <div class="backup-section section" id="backupSection">
-      <div class="backup-filepaths-elements">
-        <h2 class="backup-title section-title">Timed Backup</h2>
-        <!-- Donor Folder -->
-        <p>Folder to Backup: <strong id="folderPath"></strong></p>
-        <button type="button" id="backup-folder-path-btn" class="button">Choose folder to backup</button>
-
-        <!-- Receptacle Folder -->
-        <p>Backup Location: <strong id="folderSavePath"></strong></p>
-        <button type="button" id="backup-folder-save-path-btn" class="button">Choose a location to save backups</button>
+    <main>
+      <div class="folder-input">
+        <!-- Input Folder -->
+        <button type="button" id="backup-folder-path-btn" class="button">
+          Input folder
+        </button>
+        <p>Input Folder: <strong id="folderPath"></strong></p>
       </div>
 
-      <div class="backup-status-elements">
-        <!-- Frequency -->
-        <p>Backup Frequency (mins):
-          <input id="backup-time" type="number" placeholder="10" class="input">
-        </p>
+      <!-- * Timed Backup Section -->
+      <div class="backup-section section" id="backupSection">
+        <div class="section-input">
+          <h2 class="backup-title section-title">Timed Backup</h2>
 
-        <!-- Number of Backups -->
-        <p>Number of Backups:
-          <input id="backup-number" type="number" placeholder="2" class="input">
-        </p>
+          <!-- Receptacle Folder -->
+          <div class="folder-input">
+            <button
+              type="button"
+              id="backup-folder-save-path-btn"
+              class="button"
+            >
+              Backup location
+            </button>
+            <p>Backup Location: <strong id="folderSavePath"></strong></p>
+          </div>
 
-        <div class="backup-bottom">
-          <!-- Backup Button -->
-          <button type="button" class="button" id="backup-btn">Start Backup</button>
+          <div class="backup-status-elements">
+            <!-- Frequency -->
+            <p>
+              Backup Frequency (mins):
+              <input
+                id="backup-time"
+                type="number"
+                placeholder="10"
+                class="input"
+              />
+            </p>
 
-          <!-- Backup Status -->
-          <div class="backup-status">
-            <p>Backup Status:<strong id="backup-status-light"></strong></p>
-            <div class="backup-light" id="backupLight"></div>
+            <!-- Number of Backups -->
+            <p>
+              Number of Backups:
+              <input
+                id="backup-number"
+                type="number"
+                placeholder="2"
+                class="input"
+              />
+            </p>
+
+            <div class="backup-bottom">
+              <!-- Backup Button -->
+              <button type="button" class="button" id="backup-btn">
+                Start Backup
+              </button>
+
+              <!-- Backup Status -->
+              <div class="backup-status">
+                <p>Backup Status:<strong id="backup-status-light"></strong></p>
+                <div class="backup-light" id="backupLight"></div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Backup Notifications -->
-      <div class="backup-notifications">
-        <p>Notifications:</p>
-        <p><strong id="backupMessage"></strong></p>
-      </div>
-    </div>
-
-    <!-- * Snapshot Section -->
-    <div class="snapshot-section section" id="snapshotSection">
-      <div class="snapshot-upper">
-        <h2 class="snapshot-title section-title">Snapshot</h2>
-
-        <!-- Snapshot Receptacle Folder -->
-        <p>Snapshot Backup Location: <strong id="snapshotSavePath"></strong></p>
-        <button type="button" id="snapshot-save-path-btn" class="button">Choose a location to save snapshots</button>
-
-        <!-- Hotkey -->
-        <div class="hotkey">
-          <p><a href="https://www.electronjs.org/docs/latest/api/accelerator" target="_blank"
-              class="hotkey-link">Hotkey</a> to snapshot:
-            <input id="snapshot-hotkey-box" type="text" placeholder="Ctrl+0" class="input">
-          </p>
-          <button class="button" id="snapshotHotkeyBtn">Register Hotkey</button>
+        <!-- Backup Notifications -->
+        <div class="backup-notifications notification-box">
+          <p class="notification-title">Notifications</p>
+          <p id="backupMessage">placeholder notification aaaaaaaaaaaaaaaaaaaaaaaaaaaa</p>
         </div>
       </div>
 
-      <div class="shapshot-bottom">
-        <!-- Snapshot Name -->
-        <p>Snapshot name:
-          <input id="snapshot-name-box" type="text" placeholder="Snapshot Name" class="input">
-        </p>
+      <!-- * Snapshot Section -->
+      <div class="snapshot-section section" id="snapshotSection">
+        <div class="section-input">
+          <!-- <div class="snapshot-upper"> -->
+            <h2 class="snapshot-title section-title">Snapshot</h2>
 
-        <!-- Snapshot Button -->
-        <button class="button" id="snapshotBtn">Snapshot</button>
-      </div>
+            <!-- Snapshot Receptacle Folder -->
+            <p>Snapshot Location: <strong id="snapshotSavePath"></strong></p>
+            <button type="button" id="snapshot-save-path-btn" class="button">
+              Choose a location to save snapshots
+            </button>
 
-      <!-- Snapshot Notifications -->
-      <div class="snapshot-notifications">
-        <p>Notifications:</p>
-        <p><strong id="snapshotMessage"></strong></p>
-      </div>
-    </div>
+            <p>
+              Snapshot name:
+              <input
+                id="snapshot-name-box"
+                type="text"
+                placeholder="Snapshot Name"
+                class="input"
+              />
+            </p>
 
-    <!-- * Profile Section -->
-    <div class="profile-section section" id="profileSection">
-      <div class="profile-left">
-        <h2 class="profile-title section-title">Profiles</h2>
-        <!-- Profile Name -->
-        <p>Profile name:
-          <input id="profile-name-box" type="text" placeholder="ProfileName" class="input">
-        </p>
-        <div class="profile-buttons">
-          <!-- Save profile -->
-          <button class="button" id="saveProfileBtn">Save profile</button>
+ <!-- Hotkey -->
+            <div class="hotkey">
+              <p>
+                <a
+                  href="https://www.electronjs.org/docs/latest/api/accelerator"
+                  target="_blank"
+                  class="hotkey-link"
+                  >Hotkey</a
+                >
+                to snapshot:
+                <input
+                  id="snapshot-hotkey-box"
+                  type="text"
+                  placeholder="Ctrl+0"
+                  class="input"
+                />
+              </p>
+              <button class="button" id="snapshotHotkeyBtn">
+                Register Hotkey
+              </button>
+            </div>
+          <!-- </div> -->
 
-          <!-- Load profile -->
-          <button class="button" id="loadProfileBtn">Load profile</button>
+          <!-- <div class="shapshot-bottom"> -->
+            <!-- Snapshot Name -->
+                       <!-- Snapshot Button -->
+            <button class="button" id="snapshotBtn">Snapshot</button>
+          <!-- </div> -->
+        </div>
+
+        <!-- Snapshot Notifications -->
+        <div class="snapshot-notifications notification-box">
+          <p class="notification-title">Notifications</p>
+          <p id="snapshotMessage">placeholder notification</p>
         </div>
       </div>
 
-      <div class="profile-notifications">
-        <!-- Profile Notifications -->
-        <p>Notifications:</p>
-        <p><strong id="profileMessage"></strong></p>
-      </div>
-    </div>
-  </main>
-</body>
+      <!-- * Profile Section -->
+      <div class="profile-section section" id="profileSection">
+        <div class="profile-left">
+          <h2 class="profile-title section-title">Profile</h2>
+          <!-- Profile Name -->
+          <!-- <p> -->
+          <!--   Profile name: -->
+          <!--   <input -->
+          <!--     id="profile-name-box" -->
+          <!--     type="text" -->
+          <!--     placeholder="ProfileName" -->
+          <!--     class="input" -->
+          <!--   /> -->
+          <!-- </p> -->
+          <!-- <p>See if you can have one button to dynamically save or create new profile in one, like saving a new </p> -->
+          <p>Loaded profile: <strong id="profileName"></strong></p>
+          <div class="profile-buttons">
+              <!-- New profile -->
+              <button class="button" id="newProfileBtn">New profile</button>
+            <!-- Save profile -->
+            <button class="button" id="saveProfileBtn">Save profile</button>
 
-  <!-- <body> -->
-  <!--   <main class="container"> -->
-  <!--     <h1>Welcome to the better BS_Utility!</h1> -->
-  <!--     <p>Now written in Rust...by the way.</p> -->
-  <!---->
-  <!--     <div class="row"> -->
-  <!--       <a href="https://vitejs.dev" target="_blank"> -->
-  <!--         <img src="/src/assets/vite.svg" class="logo vite" alt="Vite logo" /> -->
-  <!--       </a> -->
-  <!--       <a href="https://tauri.app" target="_blank"> -->
-  <!--         <img -->
-  <!--           src="/src/assets/tauri.svg" -->
-  <!--           class="logo tauri" -->
-  <!--           alt="Tauri logo" -->
-  <!--         /> -->
-  <!--       </a> -->
-  <!--       <a href="https://www.typescriptlang.org/docs" target="_blank"> -->
-  <!--         <img -->
-  <!--           src="/src/assets/typescript.svg" -->
-  <!--           class="logo typescript" -->
-  <!--           alt="typescript logo" -->
-  <!--         /> -->
-  <!--       </a> -->
-  <!--     </div> -->
-  <!--     <p>Click on the Tauri logo to learn more about the framework</p>   -->
-  <!--     <p>Click on the Typescript logo to learn more about Typescript</p> -->
-  <!---->
-  <!--     <form class="row" id="greet-form"> -->
-  <!--       <input id="greet-input" placeholder="Enter a name..." /> -->
-  <!--       <button type="submit">Greet</button> -->
-  <!--     </form> -->
-  <!--     <p id="greet-msg"></p> -->
-  <!--   </main> -->
-  <!-- </body> -->
+            <!-- Load profile -->
+            <button class="button" id="loadProfileBtn">Load profile</button>
+          </div>
+        </div>
+
+        <div class="profile-notifications notification-box">
+          <!-- Profile Notifications -->
+          <p class="notification-title">Notifications</p>
+          <p id="profileMessage">placeholder notification</p>
+        </div>
+      </div>
+    </main>
+  </body>
 </html>
