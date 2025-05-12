@@ -13,9 +13,11 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "bs_utility_rust",
+        "title": "Backup & Save Utility",
         "width": 800,
-        "height": 600
+        "height": 600,
+        "minWidth": 600,
+        "minHeight": 800
       }
     ],
     "security": {

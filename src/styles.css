@@ -4,15 +4,12 @@
   line-height: 24px;
   font-weight: 400;
 
-  --bg-color: hsl(220, 5%, 24%);
-  --main-color: hsl(47, 84%, 48%);
-  --caret-color: hsl(47, 84%, 48%);
-  --sub-color: hsl(216, 2%, 40%);
-  --sub-alt-color: hsl(216, 5%, 18%);
-  --dark-color: hsl(0, 0%, 13%);
-  --text-color: hsl(55, 12%, 80%);
-  --orange: hsl(34, 100%, 50%);
-  --highlight: hsl(180, 92%, 42%);
+  --bg-color: #202020;
+  /* --text-color: hsl(55, 12%, 80%); */
+  --text-color: #f6f6f6;
+  --link-color: #646cff;
+  --link-hover-color: #24c8db;
+  --blue-background-gradient-color: #747bff;
   --green-light: hsl(120, 93%, 41%);
   --red-light: hsl(0, 97%, 47%);
   --error-color: hsl(354, 55%, 54%);
@@ -20,13 +17,10 @@
   --colorful-error-extra-color: hsl(354, 50%, 33%);
   --error-extra-color: hsla(354, 100%, 21%, 0.5);
   
-  --translucent-black: hsla(0, 0%, 0%, 0.5);
-  --blue-background-gradient: linear-gradient(135deg, hsl(242, 100%, 7%) 0%, hsl(234, 100%, 16%) 59%, hsl(241, 100%, 33%) 100%);
-  --exit-button-gradient: linear-gradient(135deg, hsl(0, 100%, 34%) 0%, hsl(0, 100%, 22%) 62%, hsl(0, 100%, 21%) 100%);
-  --button-color-gradient: linear-gradient(171deg, hsl(187, 100%, 21%) 0%, hsl(219, 100%, 21%) 59%, hsl(242, 100%, 22%) 100%);
-  color: #f6f6f6;
-  background-color: #2f2f2f;
-  background-color: #202020;
+  /* --translucent-black: hsla(0, 0%, 0%, 0.5); */
+
+  color: var(--text-color);
+  background-color: var(--bg-color);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -46,13 +40,13 @@ p {
 
 a {
   font-weight: 500;
-  color: #646cff;
+  /* color: #646cff; */
+  color: var(--link-color);
   text-decoration: inherit;
 }
 
 a:hover {
-  /* color: #535bf2; */
-  color: #24c8db;
+  color: var(--link-hover-color);
 }
 
 input,
@@ -65,7 +59,8 @@ button {
   font-family: inherit;
   /* color: #0f0f0f; */
   /* background-color: #ffffff; */
-  color: #ffffff;
+  /* color: #ffffff; */
+  color: var(--text-color);
   background-color: #0f0f0f98;
   transition: border-color 0.25s;
   box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
@@ -88,8 +83,7 @@ button {
 
 button:hover,
 input:focus {
-  /* filter: drop-shadow(0 0 2em #747bff); */
-  box-shadow: 0 0 0.5em #747bff;
+  box-shadow: 0 0 0.5em var(--blue-background-gradient-color);
 }
 
 input,
@@ -166,6 +160,14 @@ main {
   padding-bottom: 0.5em;
 }
 
+#backup-time {
+    width: 4em;
+}
+
+#backup-number {
+    width: 4em;
+}
+
 .backup-bottom {
   display: flex;
   gap: 1.5em;
@@ -186,11 +188,6 @@ main {
 
 }
 
-/* .snapshot-upper { */
-/*   grid-column: 1 / span 2; */
-/*   grid-row: 1 / 2; */
-/* } */
-
 .hotkey {
   display: flex;
   gap: 0.5em;
@@ -200,11 +197,6 @@ main {
 .hotkey input {
     width: 7em;
 }
-
-/* .snapshot-bottom { */
-/*   grid-column: 1 / 2; */
-/*   grid-row: 2 / 3; */
-/* } */
 
 .profile-section {
   display: flex;
@@ -216,4 +208,3 @@ main {
   display: flex;
   gap: 0.5em;
 }
-

@@ -76,7 +76,9 @@
         <!-- Backup Notifications -->
         <div class="backup-notifications notification-box">
           <p class="notification-title">Notifications</p>
-          <p id="backupMessage">placeholder notification aaaaaaaaaaaaaaaaaaaaaaaaaaaa</p>
+          <p id="backupMessage">
+            placeholder notification aaaaaaaaaaaaaaaaaaaaaaaaaaaa
+          </p>
         </div>
       </div>
 
@@ -84,51 +86,54 @@
       <div class="snapshot-section section" id="snapshotSection">
         <div class="section-input">
           <!-- <div class="snapshot-upper"> -->
-            <h2 class="snapshot-title section-title">Snapshot</h2>
+          <h2 class="snapshot-title section-title">Snapshot</h2>
 
+          <div class="folder-input">
+            <!-- Input Folder -->
             <!-- Snapshot Receptacle Folder -->
-            <p>Snapshot Location: <strong id="snapshotSavePath"></strong></p>
             <button type="button" id="snapshot-save-path-btn" class="button">
-              Choose a location to save snapshots
+              Shapshot location
             </button>
+            <p>Snapshot Location: <strong id="snapshotSavePath"></strong></p>
+          </div>
 
+          <p>
+            Snapshot name:
+            <input
+              id="snapshot-name-box"
+              type="text"
+              placeholder="Snapshot Name"
+              class="input"
+            />
+          </p>
+
+          <!-- Hotkey -->
+          <div class="hotkey">
             <p>
-              Snapshot name:
+              <a
+                href="https://www.electronjs.org/docs/latest/api/accelerator"
+                target="_blank"
+                class="hotkey-link"
+                >Hotkey</a
+              >
+              to snapshot:
               <input
-                id="snapshot-name-box"
+                id="snapshot-hotkey-box"
                 type="text"
-                placeholder="Snapshot Name"
+                placeholder="Ctrl+0"
                 class="input"
               />
             </p>
-
- <!-- Hotkey -->
-            <div class="hotkey">
-              <p>
-                <a
-                  href="https://www.electronjs.org/docs/latest/api/accelerator"
-                  target="_blank"
-                  class="hotkey-link"
-                  >Hotkey</a
-                >
-                to snapshot:
-                <input
-                  id="snapshot-hotkey-box"
-                  type="text"
-                  placeholder="Ctrl+0"
-                  class="input"
-                />
-              </p>
-              <button class="button" id="snapshotHotkeyBtn">
-                Register Hotkey
-              </button>
-            </div>
+            <button class="button" id="snapshotHotkeyBtn">
+              Register Hotkey
+            </button>
+          </div>
           <!-- </div> -->
 
           <!-- <div class="shapshot-bottom"> -->
-            <!-- Snapshot Name -->
-                       <!-- Snapshot Button -->
-            <button class="button" id="snapshotBtn">Snapshot</button>
+          <!-- Snapshot Name -->
+          <!-- Snapshot Button -->
+          <button class="button" id="snapshotBtn">Snapshot</button>
           <!-- </div> -->
         </div>
 
@@ -156,8 +161,8 @@
           <!-- <p>See if you can have one button to dynamically save or create new profile in one, like saving a new </p> -->
           <p>Loaded profile: <strong id="profileName"></strong></p>
           <div class="profile-buttons">
-              <!-- New profile -->
-              <button class="button" id="newProfileBtn">New profile</button>
+            <!-- New profile -->
+            <button class="button" id="newProfileBtn">New profile</button>
             <!-- Save profile -->
             <button class="button" id="saveProfileBtn">Save profile</button>
 
