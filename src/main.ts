@@ -23,6 +23,7 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 });
 
+// Write methods to update fields in this
 let params = {
   // inputRequest: true,
   inputFolder: "",
@@ -38,7 +39,8 @@ let params = {
 function handleClick(event: Event) {
   const target = event.target as HTMLElement
   const id = target.id
-  console.log(target.id);
+  // console.log(target.id);
+
   // TODO make this either into a clean looking one liner version or a switch statement like shown
 //   switch (id) {
 //     case "inputFolderBtn": processPending(); break;
@@ -47,7 +49,10 @@ function handleClick(event: Event) {
 // }
     if (id == "inputFolderBtn") {
       // request input folder
-        console.log("click");
+        // console.log("click");
+        // invoke('my_custom_command');
+        // You can then call a method to update params where you are console.logging here
+        invoke('get_folder', { invokeMessage: 'input' }).then((message) => console.log(message));
     } else
     if (id == "backupFolderBtn") {
       // request backup folder
