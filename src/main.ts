@@ -52,10 +52,17 @@ function handleClick(event: Event) {
         // console.log("click");
         // invoke('my_custom_command');
         // You can then call a method to update params where you are console.logging here
-        invoke('get_folder', { invokeMessage: 'input' }).then((message) => console.log(message));
+        invoke('get_folder', { invokeMessage: 'input' })
+            .then((inputFolder) => console.log(inputFolder))
+            .catch((error) => console.error(error));
+
     } else
     if (id == "backupFolderBtn") {
       // request backup folder
+        // Invoking an async function
+        invoke('my_custom_command', { value: 'Hello, Async!' }).then(() =>
+            console.log('Completed!')
+        );
     } else
     if (id == "snapshotFolderBtn") {
       // request snapshot folder

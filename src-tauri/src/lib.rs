@@ -1,3 +1,6 @@
+// Imports
+use tauri::ipc::Response;
+
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
 fn greet(name: &str) -> String {
@@ -16,9 +19,17 @@ struct FolderResponse {
 }
 
 #[tauri::command]
-fn get_folder(invoke_message: String) -> String {
-  println!("Invoked from JavaScript, I am getting this folder: {}", invoke_message);
+fn get_folder(invoke_message: String) -> String { // this will be the following later so it can
+                                                  // handle failing -> Result<String, String>
+  println!("Invoked from TypeScript, I am getting this folder: {}", invoke_message);
   "Message from Rust".into()
+}
+
+// Read the profile.txt or .json file
+#[tauri::command]
+fn read_file() -> Response {
+  let data = std::fs::read("/path/to/file").unwrap();
+  tauri::ipc::Response::new(data)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
