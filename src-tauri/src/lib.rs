@@ -41,7 +41,22 @@ async fn async_get_folder(invoke_message: &str) -> Result<String, String> {
   }
   some_async_function().await;
   // Note that the return value must be wrapped in `Ok()` now.
-    Ok(format!("{}", invoke_message))
+    // Ok(format!("{}", invoke_message))
+
+    println!(
+        "Invoked asynchronously from TypeScript. I am getting this folder: {}",
+        invoke_message
+    );
+    // "Message from Rust".into();
+    let test_bool = false;
+    let path_fetch_err = "Test path fetch error".to_string();
+    if !test_bool {
+    //     // Ok(response.file_path);
+    Ok("test/file/path".into())
+    } else {
+    //     // Err(response.message);
+    Err(format!("Path fetch err: {}", path_fetch_err).into())
+    }
 }
 
 // Read the profile.txt or .json file
