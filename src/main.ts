@@ -1,27 +1,15 @@
 import { invoke } from "@tauri-apps/api/core";
 
-let greetInputEl: HTMLInputElement | null;
-let greetMsgEl: HTMLElement | null;
 // console.log("hello");
 
-
-async function greet() {
-  if (greetMsgEl && greetInputEl) {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    greetMsgEl.textContent = await invoke("greet", {
-      name: greetInputEl.value,
-    });
-  }
-}
-
 window.addEventListener("DOMContentLoaded", () => {
-  greetInputEl = document.querySelector("#greet-input");
-  greetMsgEl = document.querySelector("#greet-msg");
-  document.querySelector("#greet-form")?.addEventListener("submit", (e) => {
-    e.preventDefault();
-    greet();
-  });
 });
+
+// Types
+interface Result<T, E> {
+    ok?: T;
+    err?: E;
+}
 
 // Write methods to update fields in this
 let params = {
@@ -31,7 +19,6 @@ let params = {
   snapshotFolder: "",
   backupTime: 0,
   backupNumber: 0,
-  
 }
 
 // TODO Could write smaller functions to handle sending the stuff for each button, 
@@ -49,11 +36,19 @@ function handleClick(event: Event) {
 // }
     if (id == "inputFolderBtn") {
       // request input folder
-        // console.log("click");
-        // invoke('my_custom_command');
         // You can then call a method to update params where you are console.logging here
         invoke('get_folder', { invokeMessage: 'input' })
-            .then((inputFolder) => console.log(inputFolder))
+            .then((result: unknown) => {
+                    const inputFolder = result as string | null; // Narrow the type to string | null
+                    if (inputFolder !== null) {
+                    console.log(inputFolder);
+                    params.inputFolder = inputFolder; // Assign the value if it's not null
+                    const inputFolderPathElement = document.querySelector("#inputFolderPath")
+                    if (inputFolderPathElement) {
+                        inputFolderPathElement.textContent = inputFolder ?? "No folder selected";
+                    }
+                }
+            })
             .catch((error) => console.error(error));
 
     } else
@@ -98,4 +93,3 @@ function handleClick(event: Event) {
 document.querySelectorAll("button")?.forEach((button) => {
   button.addEventListener("click", (event) => handleClick(event))
 })
-// TODO Could maybe add this event listener to all buttons in one go, pass in the event to handleClick
