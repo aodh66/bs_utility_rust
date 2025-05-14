@@ -60,7 +60,7 @@ function handleClick(event: Event) {
     if (id == "backupFolderBtn") {
       // request backup folder
         // Invoking an async function
-        invoke('my_custom_command', { value: 'Hello, Async!' }).then(() =>
+        invoke('async_get_folder', { invokeMessage: 'Hello, Async!' }).then(() =>
             console.log('Completed!')
         );
     } else
