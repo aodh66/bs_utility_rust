@@ -24,6 +24,25 @@ let params: { [key: string]: any } = {
     profile: "",
 }
 
+// function populateProfile() {
+//     // You can then call a method to update params where you are console.logging here
+//     invoke('get_profile', {})
+//         .then((result: unknown) => {
+//             const profile = result as string | null; // Narrow the type to string | null
+//             if (profile != null) {
+//                 console.log(`Loaded profile: ${profile}`);
+//                 params.profile = profile; // Assign the value if it's not null
+//                 const profileNameElement = document.querySelector(`#profileName`);
+//                 if (profileNameElement) {
+//                     profileNameElement.textContent = profile ?? "No profile selected";
+//                 }
+//             }
+//         })
+//         .catch((error) => console.error(error));
+// }
+// populateProfile();
+
+
 // Get OS
 function getOS() {
     // You can then call a method to update params where you are console.logging here
@@ -40,8 +59,12 @@ function getOS() {
                     }
                 }
             }
-        }) // <-- Correctly close the `then` block here
+        })
         .catch((error) => console.error(error));
+}
+
+if (!params.os) {
+    getOS();
 }
 getOS();
 
@@ -57,40 +80,14 @@ function handleClick(event: Event) {
         case "inputFolderBtn": asyncGetFolder("input"); break;
         case "backupFolderBtn": asyncGetFolder("backup"); break;
         case "snapshotFolderBtn": asyncGetFolder("snapshot"); break;
+        // case "backupBtn": asyncBackup(); break;
         case "snapshotBtn": asyncSnapshot(); break;
+        // case "snapshotHotkeyBtn": asyncRegisterHotkey(); break;
+        // case "newProfileBtn": asyncNewProfile(); break;
+        // case "saveProfileBtn": asyncSaveProfile(); break;
+        // case "loadProfileBtn": asyncLoadProfile(); break;
         default: handleError();
     }
-    // if (id == "inputFolderBtn") {
-    //     // request input folder
-    //     // You can then call a method to update params where you are console.logging here
-    //     asyncGetFolder("input");
-    // } else
-    //     if (id == "backupFolderBtn") {
-    //         // request backup folder
-    //         asyncGetFolder("backup");
-    //     } else
-    //         if (id == "snapshotFolderBtn") {
-    //             // request snapshot folder
-    //             asyncGetFolder("snapshot");
-    //         } else
-    //             if (id == "backupBtn") {
-    //                 // start backup
-    //             } else
-    //                 if (id == "snapshotBtn") {
-    //                     // take snapshot
-    //                 } else
-    //                     if (id == "snapshotHotkeyBtn") {
-    //                         // register snapshot hotkey
-    //                     } else
-    //                         if (id == "newProfileBtn") {
-    //                             // create new profile
-    //                         } else
-    //                             if (id == "saveProfileBtn") {
-    //                                 // save profile
-    //                             } else
-    //                                 if (id == "loadProfileBtn") {
-    //                                     // load profile
-    //                                 }
 }
 
 // Apply handleClick to all of the buttons
@@ -126,10 +123,6 @@ function handleError() {
 // }
 
 function asyncGetFolder(invokeMessage: string) {
-    // You can then call a method to update params where you are console.logging here
-    // invoke('async_get_folder', { invokeMessage: 'Hello, Async!' }).then(() =>
-    // console.log('Completed!')
-    // );
     invoke('async_get_folder', { invokeMessage: invokeMessage })
         .then((result: unknown) => {
             const folder = result as string | null; // Narrow the type to string | null
@@ -150,7 +143,6 @@ function asyncGetFolder(invokeMessage: string) {
                 backupMessageElement.textContent = `${error} getting ${invokeMessage}Folder`;
                 // ?? "Folder selection failed";
             }
-
         });
 }
 
