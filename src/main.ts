@@ -9,13 +9,8 @@ listen<string>('os-type', (event) => {
 window.addEventListener("DOMContentLoaded", () => {
 });
 
-// Types
-// interface Result<T, E> {
-//     ok?: T;
-//     err?: E;
-// }
-
-// Write methods to update fields in this
+// Write methods to update fields in this maybe
+// TODO change the type from any to string | int
 let params: { [key: string]: any } = {
     // inputRequest: true,
     "os": "",
@@ -24,8 +19,12 @@ let params: { [key: string]: any } = {
     "snapshotFolder": "",
     backupTime: 0,
     backupNumber: 0,
+    snapshotName: "",
+    hotkey: "",
+    profile: "",
 }
 
+// Get OS
 function getOS() {
     // You can then call a method to update params where you are console.logging here
     invoke('get_os', {})
@@ -34,8 +33,14 @@ function getOS() {
             if (os != null) {
                 console.log(`OS is: ${os}`);
                 params.os = os; // Assign the value if it's not null
+                if (os == "unknown") {
+                    const backupMessageElement = document.querySelector(`#backupMessage`);
+                    if (backupMessageElement) {
+                        backupMessageElement.textContent = "Unknown OS. App functionality unknown. Bugs may occur.";
+                    }
+                }
             }
-        })
+        }) // <-- Correctly close the `then` block here
         .catch((error) => console.error(error));
 }
 getOS();
@@ -150,6 +155,7 @@ function asyncGetFolder(invokeMessage: string) {
 }
 
 function asyncSnapshot() {
+    let snapshotName = "Snapshot";
     if (!params.inputFolder) {
         // TODO error dropdown trigger fuction 
         console.error("No input folder selected");
@@ -157,18 +163,45 @@ function asyncSnapshot() {
         if (backupMessageElement) {
             backupMessageElement.textContent = `No input folder selected`;
         }
+    } else if (!params.snapshotFolder) {
+        // TODO error dropdown trigger fuction 
+        console.error("No snapshot destination folder selected");
+        const backupMessageElement = document.querySelector(`#backupMessage`)
+        if (backupMessageElement) {
+            backupMessageElement.textContent = `No snapshot destination folder selected`;
+        }
     } else {
-        console.log(params.inputFolder.lastIndexOf("/"));
-
-        let finalFolder = params.inputFolder.slice(params.inputFolder.lastIndexOf("/"));
-        console.warn("DEBUGPRINT[11]: main.ts:142: finalFolder=", finalFolder)
-
+        // console.log(document.querySelector(`#snapshotNameBox`).value);
+        const snapshotNameBox = document.querySelector(`#snapshotNameBox`) as HTMLInputElement;
+        if (snapshotNameBox) {
+            snapshotName = snapshotNameBox.value
+        }
+        let finalFolder = "";
+        if (params.os == "windows") {
+            finalFolder = params.inputFolder.slice(params.inputFolder.lastIndexOf("\\") + 1);
+            snapshotName = `${finalFolder} snapshot`;
+        } else {
+            finalFolder = params.inputFolder.slice(params.inputFolder.lastIndexOf("/") + 1);
+            snapshotName = `${finalFolder} snapshot`;
+        }
+        // console.log(params.inputFolder.slice(params.inputFolder.lastIndexOf("\\") + 1));
+        invoke('async_snapshot', { invokeMessage: snapshotName })
+            .then((result: unknown) => {
+                const success = result as boolean | null; // Narrow the type to string | null
+                if (success != null) {
+                    const backupMessageElement = document.querySelector(`#backupMessage`)
+                    if (backupMessageElement) {
+                        backupMessageElement.textContent = `${snapshotName} Snapshot Saved`;
+                    }
+                }
+            })
+            .catch((error) => {
+                // TODO error dropdown trigger fuction 
+                console.error(error)
+                const backupMessageElement = document.querySelector(`#backupMessage`)
+                if (backupMessageElement) {
+                    backupMessageElement.textContent = `${error} saving ${snapshotName} Snapshot`;
+                }
+            });
     }
-    // console.log(params.inputFolder);
-
-
-    // let snapshotName = `${} snapshot`;
-    // if (snapshotName) {
-    //
-    // }
 }
