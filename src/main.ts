@@ -167,14 +167,16 @@ function asyncSnapshot() {
         const snapshotNameBox = document.querySelector(`#snapshotNameBox`) as HTMLInputElement;
         if (snapshotNameBox) {
             snapshotName = snapshotNameBox.value
-        }
-        let finalFolder = "";
-        if (params.os == "windows") {
-            finalFolder = params.inputFolder.slice(params.inputFolder.lastIndexOf("\\") + 1);
-            snapshotName = `${finalFolder} snapshot`;
         } else {
-            finalFolder = params.inputFolder.slice(params.inputFolder.lastIndexOf("/") + 1);
-            snapshotName = `${finalFolder} snapshot`;
+            snapshotName = "Snapshot"
+        }
+        // let finalFolder = "";
+        if (params.os == "windows") {
+            // finalFolder = params.inputFolder.slice(params.inputFolder.lastIndexOf("\\"));
+            snapshotName = `\\${snapshotName}`;
+        } else {
+            // finalFolder = params.inputFolder.slice(params.inputFolder.lastIndexOf("/"));
+            snapshotName = `/${snapshotName}`;
         }
         // console.log(params.inputFolder.slice(params.inputFolder.lastIndexOf("\\") + 1));
         invoke('async_snapshot', { invokeMessage: snapshotName })
