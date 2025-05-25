@@ -18,12 +18,14 @@ use std::path::Path;
 // use std::future::Future;
 use tokio::sync::Mutex as TokioMutex;
 use tokio::task;
+use tokio::time::{sleep, Duration};
 
 
 // State variable
 #[derive(Default)]
 struct AppState {
     os: String,
+    count: u32,
     input_folder: String,
     backup_folder: String,
     snapshot_folder: String,
@@ -62,9 +64,7 @@ async fn folder_picker() -> Option<String> {
 }
 
 // An async function
-// Return a Result<String, ()> to bypass the borrowing issue
 #[tauri::command]
-// async fn async_get_folder(invoke_message: &str) -> Result<String, String> {
 async fn async_get_folder(
     invoke_message: &str,
     // state: State<'_, Mutex<AppState>>
@@ -73,8 +73,6 @@ async fn async_get_folder(
 ) -> Result<String, String> {
     // Call another async function and wait for it to finish
     let folder = folder_picker().await;
-    // }
-    // Note that the return value must be wrapped in `Ok()` now.
     match folder {
         Some(ref path) => {
             let mut app_state = state.lock().await;
@@ -150,6 +148,51 @@ let destination: PathBuf = PathBuf::from(dst); // Convert to PathBuf
         .map_err(|e| e.to_string())
 }
 
+
+async fn callback_loop(
+source: &Path, 
+destination: &Path, 
+count: u32, 
+backup_time: u32, 
+backup_number: u32,
+    // mut counter: u32,
+    state: tauri::State<'_, TokioMutex<AppState>>, // Use tokio::sync::Mutex
+) {
+    let app_state = state.lock().await; // Use tokio::sync::Mutex
+    while count == app_state.count {
+        println!("Backup saved: count {}", count);
+        sleep(Duration::from_secs(1)).await;
+    }
+}
+
+// Async function to periodically backup folder
+#[tauri::command]
+async fn async_backup(
+    backup_time: u32,
+    backup_number: u32,
+    state: tauri::State<'_, TokioMutex<AppState>>, // Use tokio::sync::Mutex
+) -> Result<bool, String> {
+    // Put backup times into state
+    let mut app_state = state.lock().await; // Use tokio::sync::Mutex
+    app_state.backup_time = backup_time;
+    app_state.backup_number = backup_number;
+    app_state.count += 1;
+
+let input_folder = app_state.input_folder.clone(); // Clone the input folder
+let source: PathBuf = PathBuf::from(input_folder); // Convert to PathBuf
+
+let backup_folder = app_state.backup_folder.clone(); // Clone the backup folder
+let destination: PathBuf = PathBuf::from(backup_folder); // Convert to PathBuf
+                                                         
+let count = app_state.count.clone(); // Clone the count
+                                                        
+    // Try to back up the folder
+    task::spawn_blocking(move || callback_loop(&source, &destination, count, backup_time, backup_number))
+        .await
+        .map_err(|e| e.to_string())?
+        .map_err(|e| e.to_string())
+}
+
 // Read the profile.txt or .json file
 #[tauri::command]
 fn read_file() -> Response {
@@ -160,14 +203,10 @@ fn read_file() -> Response {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        // .setup(|app| {
-        //     app.manage(Mutex::new(AppState::default()));
-        //     Ok(())
-        // })
         // .manage(Mutex::new(AppState::default())) // Register the state
-        .manage(TokioMutex::new(AppState::default())) // Register the state
-        // .manage(tokio::sync::Mutex::new(AppState::default())) // For async functions
+        .manage(TokioMutex::new(AppState::default())) // Register the state async
         // .manage(std::sync::Mutex::new(AppState::default()))   // For sync functions
+        // .manage(tokio::sync::Mutex::new(AppState::default())) // For async functions
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             get_os,

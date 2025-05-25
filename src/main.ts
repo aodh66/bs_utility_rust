@@ -192,22 +192,24 @@ function asyncBackup() {
                 notify("e", "Input a number > 0 for how many backups to keep");
             }
         }
-        console.log(params);
 
-        // invoke('async_snapshot', { invokeMessage: snapshotName })
-        //     .then((result: unknown) => {
-        //         const success = result as boolean | null; // Narrow the type to string | null
-        //         if (success != null) {
-        //             if (success) {
-        //                 notify("m", `${snapshotName} Snapshot Saved`);
-        //             } else {
-        //                 notify("e", `${snapshotName} Snapshot failed`);
-        //             }
-        //         }
-        //     })
-        //     .catch((error) => {
-        //         notify("e", `${error} saving ${snapshotName} Snapshot`);
-        //     });
+        invoke('async_backup', {
+            backupTime: backupTime,
+            backupNumber: backupNumber
+        })
+            .then((result: unknown) => {
+                const success = result as boolean | null; // Narrow the type to string | null
+                if (success != null) {
+                    if (success) {
+                        notify("m", `Backup Saved`);
+                    } else {
+                        notify("e", `Backup failed`);
+                    }
+                }
+            })
+            .catch((error) => {
+                notify("e", `${error} saving Backup`);
+            });
     }
 }
 
