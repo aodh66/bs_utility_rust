@@ -15,8 +15,8 @@ let params: { [key: string]: string | number } = {
     inputFolder: "",
     backupFolder: "",
     snapshotFolder: "",
-    backupTime: 0,
-    backupNumber: 0,
+    backupTime: 10,
+    backupNumber: 2,
     snapshotName: "",
     hotkey: "",
     profile: "",
@@ -165,27 +165,32 @@ function asyncSnapshot() {
 }
 
 function asyncBackup() {
-    let backupTime = 10;
-    let backupNumber = 2;
+    let backupTime = params.backupTime;
+    let backupNumber = params.backupNumber;
     if (!params.inputFolder) {
         notify("e", "No input folder selected");
     } else if (!params.backupFolder) {
         notify("e", "No backup destination folder selected");
     } else {
         let backupTimeBox = document.querySelector(`#backup-time`) as HTMLInputElement;
-        console.warn("DEBUGPRINT[23]: main.ts:229: backupTimeBox.value=", backupTimeBox.value)
         let backupNumberBox = document.querySelector(`#backup-number`) as HTMLInputElement;
-        if (backupTimeBox && !isNaN(backupTimeBox.valueAsNumber)) {
-            backupTime = backupTimeBox.valueAsNumber;
-            params.backupTime = backupTime
-        } else {
-            notify("e", "Input a number for backup frequency");
+
+        if (backupTimeBox && backupTimeBox.value != "") {
+            if (!isNaN(backupTimeBox.valueAsNumber) && backupTimeBox.valueAsNumber > 0) {
+                backupTime = backupTimeBox.valueAsNumber;
+                params.backupTime = backupTimeBox.valueAsNumber
+            } else {
+                notify("e", "Input a number > 0 for backup frequency");
+            }
         }
-        if (backupNumberBox && !isNaN(backupNumberBox.valueAsNumber)) {
-            backupNumber = backupNumberBox.valueAsNumber;
-            params.backupNumber = backupNumber
-        } else {
-            notify("e", "Input a number for how many backups to keep");
+
+        if (backupNumberBox && backupNumberBox.value != "") {
+            if (!isNaN(backupNumberBox.valueAsNumber) && backupNumberBox.valueAsNumber > 0) {
+                backupNumber = backupNumberBox.valueAsNumber;
+                params.backupNumber = backupNumberBox.valueAsNumber
+            } else {
+                notify("e", "Input a number > 0 for how many backups to keep");
+            }
         }
         console.log(params);
 
