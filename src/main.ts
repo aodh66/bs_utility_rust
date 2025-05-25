@@ -75,7 +75,6 @@ function handleClick(event: Event) {
     const id = target.id
     // console.log(target.id);
 
-    // TODO make this either into a clean looking one liner version or a switch statement like shown
     switch (id) {
         case "inputFolderBtn": asyncGetFolder("input"); break;
         case "backupFolderBtn": asyncGetFolder("backup"); break;
@@ -103,24 +102,6 @@ function handleError() {
         backupMessageElement.textContent = "Button click handler error"
     }
 }
-
-// param should be 'input', 'backup', or 'snapshot'
-// function getFolder(invokeMessage: string) {
-//   // You can then call a method to update params where you are console.logging here
-//   invoke('get_folder', { invokeMessage: invokeMessage })
-//       .then((result: unknown) => {
-//               const folder = result as string | null; // Narrow the type to string | null
-//               if (folder != null) {
-//               console.log(folder);
-//               params[`${invokeMessage}Folder`]= folder; // Assign the value if it's not null
-//               const folderPathElement = document.querySelector(`#${invokeMessage}FolderPath`)
-//               if (folderPathElement) {
-//                   folderPathElement.textContent = folder ?? "No folder selected";
-// }
-//           }
-//       })
-//       .catch((error) => console.error(error));
-// }
 
 function asyncGetFolder(invokeMessage: string) {
     invoke('async_get_folder', { invokeMessage: invokeMessage })
@@ -170,22 +151,22 @@ function asyncSnapshot() {
         } else {
             snapshotName = "Snapshot"
         }
-        // let finalFolder = "";
         if (params.os == "windows") {
-            // finalFolder = params.inputFolder.slice(params.inputFolder.lastIndexOf("\\"));
             snapshotName = `\\${snapshotName}`;
         } else {
-            // finalFolder = params.inputFolder.slice(params.inputFolder.lastIndexOf("/"));
             snapshotName = `/${snapshotName}`;
         }
-        // console.log(params.inputFolder.slice(params.inputFolder.lastIndexOf("\\") + 1));
         invoke('async_snapshot', { invokeMessage: snapshotName })
             .then((result: unknown) => {
                 const success = result as boolean | null; // Narrow the type to string | null
                 if (success != null) {
                     const backupMessageElement = document.querySelector(`#backupMessage`)
                     if (backupMessageElement) {
-                        backupMessageElement.textContent = `${snapshotName} Snapshot Saved`;
+                        if (success) {
+                            backupMessageElement.textContent = `${snapshotName} Snapshot Saved`;
+                        } else {
+                            backupMessageElement.textContent = `${snapshotName} Snapshot failed`;
+                        }
                     }
                 }
             })
