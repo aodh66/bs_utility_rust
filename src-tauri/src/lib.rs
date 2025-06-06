@@ -9,6 +9,7 @@ use tauri::ipc::Response;
 // Builder,
 // Manager
 // };
+use std::env;
 use std::fs;
 use std::io;
 use std::path::Path;
@@ -20,6 +21,7 @@ use std::sync::Arc;
 use tokio::sync::Mutex as TokioMutex;
 use tokio::task;
 use tokio::time::{sleep, Duration};
+use serde::Serialize;
 
 // State variable
 #[derive(Default)]
@@ -65,7 +67,7 @@ async fn folder_picker() -> Option<String> {
         .map(|path: PathBuf| path.to_string_lossy().to_string())
 }
 
-// An async function
+// An async function to get a folder
 #[tauri::command]
 async fn async_get_folder(
     invoke_message: &str,
@@ -86,22 +88,15 @@ async fn async_get_folder(
     }
     match folder {
         Some(ref path) => {
-            // let mut app_state = state.lock().await;
             match invoke_message {
                 "input" => {
                     app_state.input_folder = folder.clone().unwrap();
                 }
                 "backup" => {
-                    // if folder.clone().unwrap() != app_state.input_folder {
                     app_state.backup_folder = folder.clone().unwrap();
-                    // } else {
-                    // Err("Cannot be the same as input folder".into())
-                    // }
                 }
                 "snapshot" => {
-                    // if folder.clone().unwrap() != app_state.input_folder {
                     app_state.snapshot_folder = folder.clone().unwrap();
-                    // }
                 }
                 _ => {}
             }
@@ -111,7 +106,6 @@ async fn async_get_folder(
             );
             Ok(path.into())
         }
-        // Some(path) => Err("Path fetch err".into()),
         None => Err("Path fetch error".into()),
     }
 }
@@ -282,6 +276,62 @@ async fn async_backup(
     Ok(true)
 }
 
+// Opens native os dialog for profile selection and saving
+async fn profile_picker(invoke_message: &str, profile_dir: PathBuf) -> Option<String> {
+    match invoke_message {
+        "new" => FileDialog::new()
+            .set_directory(profile_dir)
+            .save_file()
+            .map(|path: PathBuf| path.to_string_lossy().to_string()),
+        // "save" => {
+        // FileDialog::new()
+        //     .set_directory("/profile")
+        //     .save_file()
+        //     .map(|path: PathBuf| path.to_string_lossy().to_string())
+        // }
+        "load" => FileDialog::new()
+            .set_directory(profile_dir)
+            .pick_file()
+            .map(|path: PathBuf| path.to_string_lossy().to_string()),
+        _ => Some("Error".to_string()),
+    }
+}
+
+// An async function to save a profile
+#[tauri::command]
+async fn async_profile(
+    invoke_message: &str,
+    // state: State<'_, Mutex<AppState>>
+    // state: tauri::State<'_, TokioMutex<AppState>>, // Use tokio::sync::Mutex
+    state: tauri::State<'_, Arc<TokioMutex<AppState>>>, // Use Arc<TokioMutex<AppState>>
+                                                        // state: tauri::State<'_, tokio::sync::Mutex<AppState>>,
+) -> Result<String, String> {
+    let mut app_state = state.lock().await;
+    let exe_path = env::current_exe().expect("Failed to get exe path");
+    let exe_dir = exe_path.parent().expect("No parent directory");
+    let profile_dir = exe_dir.join("profiles");
+    // Create the profiles directory if it doesn't exist
+    if !profile_dir.exists() {
+        // println!("Creating profile directory at: {:?}", profile_dir);
+        fs::create_dir_all(&profile_dir).map_err(|e| e.to_string())?;
+    }
+    let profile = profile_picker(invoke_message, profile_dir).await;
+    // TODO have the front ent send a json or something of all the field states for the app_state
+    // when it tries to save
+    // TODO use that to populate the toml profile 
+    if invoke_message == "new" {
+    } else if invoke_message == "save" {
+    } else if invoke_message == "load" {
+    }
+    match profile {
+        Some(ref path) => {
+            app_state.profile = profile.clone().unwrap();
+            println!("Profile {} saved", profile.clone().unwrap());
+            Ok(path.into())
+        }
+        None => Err("Profile save failed".into()),
+    }
+}
 // Read the profile.txt or .json file
 #[tauri::command]
 fn read_file() -> Response {
@@ -300,7 +350,8 @@ pub fn run() {
             async_get_folder,
             read_file,
             async_snapshot,
-            async_backup
+            async_backup,
+            async_profile
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

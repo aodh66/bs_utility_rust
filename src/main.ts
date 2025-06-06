@@ -81,7 +81,7 @@ function handleClick(event: Event) {
         case "backupBtn": asyncBackup(); break;
         case "snapshotBtn": asyncSnapshot(); break;
         // case "snapshotHotkeyBtn": asyncRegisterHotkey(); break;
-        // case "newProfileBtn": asyncNewProfile(); break;
+        case "newProfileBtn": asyncProfile("new"); break;
         // case "saveProfileBtn": asyncSaveProfile(); break;
         // case "loadProfileBtn": asyncLoadProfile(); break;
         default: notify("e", "Button click handler error");
@@ -233,5 +233,26 @@ function asyncBackup() {
                 params.backupStatus = false;
             });
     }
+}
+
+function asyncProfile(invokeMessage: string) {
+    if (invokeMessage == "save") {
+        
+    }
+    console.log(params);
+    invoke('async_profile', { invokeMessage: invokeMessage })
+        .then((result: unknown) => {
+            const profile = result as string | null; // Narrow the type to string | null
+            if (profile != null && invokeMessage == "new" ) {
+                console.log(profile);
+                const profilePathElement = document.querySelector(`#profileName`)
+                if (profilePathElement) {
+                    profilePathElement.textContent = profile ?? "No profile selected";
+                }
+            }
+        })
+        .catch((error) => {
+            notify("e", `${error} getting profile`);
+        });
 }
 
