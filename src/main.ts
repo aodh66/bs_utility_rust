@@ -10,13 +10,14 @@ window.addEventListener("DOMContentLoaded", () => {
 });
 
 // Write methods to update fields in this maybe
-let params: { [key: string]: string | number } = {
+let params: { [key: string]: string | number | boolean } = {
     os: "",
     inputFolder: "",
     backupFolder: "",
     snapshotFolder: "",
     backupTime: 10,
     backupNumber: 2,
+    backupStatus: false,
     snapshotName: "",
     hotkey: "",
     profile: "",
@@ -193,22 +194,43 @@ function asyncBackup() {
             }
         }
 
+        if (params.backupStatus == false) {
+            params.backupStatus = true;
+
+        } else {
+            params.backupStatus = false;
+        }
+
         invoke('async_backup', {
             backupTime: backupTime,
-            backupNumber: backupNumber
+            backupNumber: backupNumber,
+            backupStatus: params.backupStatus
         })
             .then((result: unknown) => {
                 const success = result as boolean | null; // Narrow the type to string | null
                 if (success != null) {
                     if (success) {
-                        notify("m", `Backup Saved`);
+                        let backupLight = document.querySelector(`#backupLight`) as HTMLInputElement;
+                        let backupBtn = document.querySelector(`#backupBtn`) as HTMLInputElement;
+                        if (params.backupStatus == true) {
+                            notify("m", `Backup Started`);
+                            backupLight.classList.add("green-light");
+                            backupBtn.textContent = "Stop Backup";
+                        } else {
+                            notify("m", `Backup Stopped`);
+                            backupLight.classList.remove("green-light");
+                            backupBtn.textContent = "Start Backup";
+                        }
+                        // turn the light to green and change the text to "Stop Backup"
                     } else {
                         notify("e", `Backup failed`);
+                        params.backupStatus = false;
                     }
                 }
             })
             .catch((error) => {
                 notify("e", `${error} saving Backup`);
+                params.backupStatus = false;
             });
     }
 }
