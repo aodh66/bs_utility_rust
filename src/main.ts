@@ -236,13 +236,49 @@ function asyncBackup() {
 }
 
 function asyncProfile(invokeMessage: string) {
+    let backupTime = params.backupTime;
+    const backupTimeBox = document.querySelector(`#backup-time`) as HTMLInputElement;
+    let backupNumber = params.backupNumber;
+    const backupNumberBox = document.querySelector(`#backup-number`) as HTMLInputElement;
+    let snapshotName = "";
+    const snapshotNameBox = document.querySelector(`#snapshotNameBox`) as HTMLInputElement;
+    let hotkey = "";
+    const hotkeyBox = document.querySelector(`#snapshotHotkeyBox`) as HTMLInputElement;
+
+        let data: { [key: string]: string | number | boolean } = {
+            os: params.os,
+            input_folder: params.inputFolder,
+            backup_folder: params.backupFolder,
+            snapshot_folder: params.snapshotFolder,
+            backup_time: backupTime,
+            backup_number: backupNumber,
+            snapshot_name: snapshotName,
+            hotkey: hotkey,
+            profile: params.profile,
+        }
+
     if (invokeMessage == "load") {
         // it needs to just send load and an empty object since it's getting all the data from file
+        invoke('async_profile', { invokeMessage: invokeMessage, data: data })
+            .then((result: unknown) => {
+                // TODO this result needs to be the json basically
+                const profileData = result as string | null; // Narrow the type to string | null
+                if (profileData != null ) {
+                    console.log(`${profileData.profile} profile loaded`);
+                    // TODO populate params and the fields from the profileData object
+                    notify("m", `${profileData.profile} profile loaded`);
+                    const profilePathElement = document.querySelector(`#profileName`)
+                    if (profilePathElement) {
+                        profilePathElement.textContent = profileData.profile ?? "No profile selected";
+                    }
+                } 
+            })
+            .catch((error) => {
+                notify("e", `${error}`);
+            });
     } else if (invokeMessage == "new" || invokeMessage == "save") {
         // it needs to get the data from the fields and the params and send it
 
-        let backupTime = params.backupTime;
-        const backupTimeBox = document.querySelector(`#backup-time`) as HTMLInputElement;
         if (backupTimeBox && backupTimeBox.value != "") {
             if (!isNaN(backupTimeBox.valueAsNumber) && backupTimeBox.valueAsNumber > 0) {
                 params.backupTime = backupTimeBox.valueAsNumber
@@ -250,8 +286,6 @@ function asyncProfile(invokeMessage: string) {
             }
         }
 
-        let backupNumber = params.backupNumber;
-        const backupNumberBox = document.querySelector(`#backup-number`) as HTMLInputElement;
         if (backupNumberBox && backupNumberBox.value != "") {
             if (!isNaN(backupNumberBox.valueAsNumber) && backupNumberBox.valueAsNumber > 0) {
                 params.backupNumber = backupNumberBox.valueAsNumber
@@ -259,21 +293,17 @@ function asyncProfile(invokeMessage: string) {
             }
         }
 
-        let snapshotName = "";
-        const snapshotNameBox = document.querySelector(`#snapshotNameBox`) as HTMLInputElement;
         if (snapshotNameBox && snapshotNameBox.value) {
             params.snapshotName = snapshotNameBox.value
             snapshotName = snapshotNameBox.value
         }
 
-        let hotkey = "";
-        const hotkeyBox = document.querySelector(`#snapshotHotkeyBox`) as HTMLInputElement;
         if (hotkeyBox && hotkeyBox.value) {
             params.hotkey = hotkeyBox.value
             hotkey = hotkeyBox.value
         }
 
-        let data: { [key: string]: string | number | boolean } = {
+        data = {
             os: params.os,
             input_folder: params.inputFolder,
             backup_folder: params.backupFolder,
@@ -300,7 +330,7 @@ function asyncProfile(invokeMessage: string) {
                 } else if (profile != null && invokeMessage == "save") {
                     console.log(`${profile} saved`);
                     notify("m", `${profile} saved`);
-                    
+
                 }
             })
             .catch((error) => {

@@ -351,6 +351,19 @@ async fn async_profile(
         // println!("Creating profile directory at: {:?}", profile_dir);
         fs::create_dir_all(&profile_dir).map_err(|e| e.to_string())?;
     }
+
+    let profile_data = AppProfile {
+        os: app_state.os.clone(),
+        input_folder: app_state.input_folder.clone(),
+        backup_folder: app_state.backup_folder.clone(),
+        snapshot_folder: app_state.snapshot_folder.clone(),
+        backup_time: data.backup_time,
+        backup_number: data.backup_number,
+        snapshot_name: data.snapshot_name.clone(),
+        hotkey: data.hotkey.clone(),
+        profile: app_state.profile.clone(),
+    };
+
     if invoke_message == "new" {
         let profile = profile_picker(invoke_message, profile_dir).await;
         if let Some(ref path) = profile {
@@ -361,17 +374,6 @@ async fn async_profile(
             println!("Profile name: {}", profile_name);
             app_state.profile = profile_name.clone();
 
-            let profile_data = AppProfile {
-                os: app_state.os.clone(),
-                input_folder: app_state.input_folder.clone(),
-                backup_folder: app_state.backup_folder.clone(),
-                snapshot_folder: app_state.snapshot_folder.clone(),
-                backup_time: data.backup_time,
-                backup_number: data.backup_number,
-                snapshot_name: data.snapshot_name.clone(),
-                hotkey: data.hotkey.clone(),
-                profile: app_state.profile.clone(),
-            };
             // Write the profile data to a toml file
             let toml = toml::to_string(&profile_data).map_err(|e| e.to_string())?;
             // let filename = format!("{}.toml", path);
@@ -385,37 +387,19 @@ async fn async_profile(
             Err("Profile save as failed".into())
         }
     } else if invoke_message == "save" {
-        // if let Some(ref path) = profile {
         if app_state.profile == "" {
             return Err("No profile selected".into());
         }
         println!("Profile name: {}", app_state.profile);
 
-        let profile_data = AppProfile {
-            os: app_state.os.clone(),
-            input_folder: app_state.input_folder.clone(),
-            backup_folder: app_state.backup_folder.clone(),
-            snapshot_folder: app_state.snapshot_folder.clone(),
-            backup_time: data.backup_time,
-            backup_number: data.backup_number,
-            snapshot_name: data.snapshot_name.clone(),
-            hotkey: data.hotkey.clone(),
-            profile: app_state.profile.clone(),
-        };
-        // Write the profile data to a toml file
         let toml = toml::to_string(&profile_data).map_err(|e| e.to_string())?;
-        let file_path = profile_dir.join(format!("{}.toml", app_state.profile.clone()));
-        // let filename = format!("{}.toml", path);
+        let file_path = profile_dir.join(app_state.profile.clone());
         let mut file = fs::File::create(&file_path).map_err(|e| e.to_string())?;
         file.write_all(toml.as_bytes()).map_err(|e| e.to_string())?;
 
         println!("Profile path: {:?}", file_path.clone());
         println!("Profile {} saved", app_state.profile.clone());
         Ok(app_state.profile.clone())
-        // } else {
-        // Err("Profile save failed".into())
-        // }
-        // Ok("test".to_string())
     } else if invoke_message == "load" {
         Ok("test".to_string())
     } else {
