@@ -1,16 +1,29 @@
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from '@tauri-apps/api/event';
+// import { listen } from '@tauri-apps/api/event';
 
 // console.log("hello");
-listen<string>('os-type', (event) => {
-    console.log(`OS is: ${event.payload}`);
-});
+// listen<string>('os-type', (event) => {
+//     console.log(`OS is: ${event.payload}`);
+// });
 
-window.addEventListener("DOMContentLoaded", () => {
-});
+// window.addEventListener("DOMContentLoaded", () => {
+// });
 
-// Write methods to update fields in this maybe
-let params: { [key: string]: string | number | boolean } = {
+type Params = {
+    os: string;
+    inputFolder: string;
+    backupFolder: string;
+    snapshotFolder: string;
+    backupTime: number;
+    backupNumber: number;
+    backupStatus: boolean;
+    snapshotName: string;
+    hotkey: string;
+    profile: string;
+}
+
+// State object
+let params: Params = {
     os: "",
     inputFolder: "",
     backupFolder: "",
@@ -53,26 +66,21 @@ function getOS() {
                 params.os = os; // Assign the value if it's not null
                 if (os == "unknown") {
                     notify("e", "Unknown OS. App functionality unknown. Bugs may occur.");
-                    // const backupMessageElement = document.querySelector(`#backupMessage`);
-                    // if (backupMessageElement) {
-                    //     backupMessageElement.textContent = "Unknown OS. App functionality unknown. Bugs may occur.";
-                    // }
                 }
             }
         })
         .catch((error) => console.error(error));
 }
+// Get OS when app starts for slash direction
 if (!params.os) {
     getOS();
 }
-// Get OS when app starts for slash direction
-getOS();
+// getOS();
 
 // Clickhandler that monitors all button clicks
 function handleClick(event: Event) {
     const target = event.target as HTMLElement
     const id = target.id
-    // console.log(target.id);
 
     switch (id) {
         case "inputFolderBtn": asyncGetFolder("input"); break;
@@ -117,7 +125,11 @@ function asyncGetFolder(invokeMessage: string) {
             const folder = result as string | null; // Narrow the type to string | null
             if (folder != null) {
                 console.log(folder);
-                params[`${invokeMessage}Folder`] = folder; // Assign the value if it's not null
+                switch (invokeMessage) {
+                    case "input": params.inputFolder = folder; break;
+                    case "backup": params.backupFolder = folder; break;
+                    case "snapshot": params.snapshotFolder = folder; break;
+                }
                 const folderPathElement = document.querySelector(`#${invokeMessage}FolderPath`)
                 if (folderPathElement) {
                     folderPathElement.textContent = folder ?? "No folder selected";
@@ -129,6 +141,7 @@ function asyncGetFolder(invokeMessage: string) {
         });
 }
 
+// TODO change this away from os and to path.join() on the backend so you don't have to query for os at all
 function asyncSnapshot() {
     let snapshotName = "Snapshot";
     if (!params.inputFolder) {
@@ -235,6 +248,18 @@ function asyncBackup() {
     }
 }
 
+type ProfileData = {
+    os: string;
+    input_folder: string;
+    backup_folder: string;
+    snapshot_folder: string;
+    backup_time: number;
+    backup_number: number;
+    snapshot_name: string;
+    hotkey: string;
+    profile: string;
+}
+
 function asyncProfile(invokeMessage: string) {
     let backupTime = params.backupTime;
     const backupTimeBox = document.querySelector(`#backup-time`) as HTMLInputElement;
@@ -245,33 +270,61 @@ function asyncProfile(invokeMessage: string) {
     let hotkey = "";
     const hotkeyBox = document.querySelector(`#snapshotHotkeyBox`) as HTMLInputElement;
 
-        let data: { [key: string]: string | number | boolean } = {
-            os: params.os,
-            input_folder: params.inputFolder,
-            backup_folder: params.backupFolder,
-            snapshot_folder: params.snapshotFolder,
-            backup_time: backupTime,
-            backup_number: backupNumber,
-            snapshot_name: snapshotName,
-            hotkey: hotkey,
-            profile: params.profile,
-        }
+    let data: ProfileData = {
+        os: params.os,
+        input_folder: params.inputFolder,
+        backup_folder: params.backupFolder,
+        snapshot_folder: params.snapshotFolder,
+        backup_time: backupTime,
+        backup_number: backupNumber,
+        snapshot_name: snapshotName,
+        hotkey: hotkey,
+        profile: params.profile,
+    }
 
     if (invokeMessage == "load") {
         // it needs to just send load and an empty object since it's getting all the data from file
-        invoke('async_profile', { invokeMessage: invokeMessage, data: data })
+        invoke('async_load_profile', { invokeMessage: invokeMessage })
             .then((result: unknown) => {
-                // TODO this result needs to be the json basically
-                const profileData = result as string | null; // Narrow the type to string | null
-                if (profileData != null ) {
-                    console.log(`${profileData.profile} profile loaded`);
-                    // TODO populate params and the fields from the profileData object
-                    notify("m", `${profileData.profile} profile loaded`);
+                const profileData = result as ProfileData | null; // Narrow the type to string | null
+                console.warn("DEBUGPRINT[25]: main.ts:265: profileData=", profileData)
+                if (profileData != null) {
+                    // Update params
+                    params.os = profileData.os;
+                    params.inputFolder = profileData.input_folder;
+                    params.backupFolder = profileData.backup_folder;
+                    params.snapshotFolder = profileData.snapshot_folder;
+                    params.backupTime = profileData.backup_time;
+                    params.backupNumber = profileData.backup_number;
+                    params.snapshotName = profileData.snapshot_name;
+                    params.hotkey = profileData.hotkey;
+                    params.profile = profileData.profile;
+
+                    // Update UI
+                    backupTimeBox.value = profileData.backup_time.toString();
+                    backupNumberBox.value = profileData.backup_number.toString();
+                    snapshotNameBox.value = profileData.snapshot_name;
+                    hotkeyBox.value = profileData.hotkey;
+                    const inputFolderPathElement = document.querySelector(`#inputFolderPath`)
+                    if (inputFolderPathElement) {
+                        inputFolderPathElement.textContent = profileData.input_folder ?? "No folder selected";
+                    }
+                    const backupFolderPathElement = document.querySelector(`#backupFolderPath`)
+                    if (backupFolderPathElement) {
+                        backupFolderPathElement.textContent = profileData.backup_folder ?? "No folder selected";
+                    }
+                    const snapshotFolderPathElement = document.querySelector(`#snapshotFolderPath`)
+                    if (snapshotFolderPathElement) {
+                        snapshotFolderPathElement.textContent = profileData.snapshot_folder ?? "No folder selected";
+                    }
                     const profilePathElement = document.querySelector(`#profileName`)
                     if (profilePathElement) {
                         profilePathElement.textContent = profileData.profile ?? "No profile selected";
                     }
-                } 
+
+                    console.log(`${profileData.profile} profile loaded`);
+                    notify("m", `${profileData.profile} profile loaded`);
+                }
             })
             .catch((error) => {
                 notify("e", `${error}`);
@@ -316,7 +369,7 @@ function asyncProfile(invokeMessage: string) {
         }
 
         console.log(data);
-        invoke('async_profile', { invokeMessage: invokeMessage, data: data })
+        invoke('async_save_profile', { invokeMessage: invokeMessage, data: data })
             .then((result: unknown) => {
                 const profile = result as string | null; // Narrow the type to string | null
                 if (profile != null && invokeMessage == "new") {

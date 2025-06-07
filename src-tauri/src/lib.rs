@@ -172,6 +172,7 @@ fn copy_folder(source: &Path, destination: &Path) -> Result<bool, io::Error> {
 }
 
 // Async function to snapshot folder
+// TODO change this away from os and to path.join() on the backend so you don't have to query for os at all
 #[tauri::command]
 async fn async_snapshot(
     invoke_message: &str,
@@ -326,7 +327,7 @@ async fn profile_picker(invoke_message: &str, profile_dir: PathBuf) -> Option<St
 
 // An async function to save a profile
 #[tauri::command]
-async fn async_profile(
+async fn async_save_profile(
     invoke_message: &str,
     data: AppProfile,
     // state: State<'_, Mutex<AppState>>
@@ -376,7 +377,6 @@ async fn async_profile(
 
             // Write the profile data to a toml file
             let toml = toml::to_string(&profile_data).map_err(|e| e.to_string())?;
-            // let filename = format!("{}.toml", path);
             let mut file = fs::File::create(&path).map_err(|e| e.to_string())?;
             file.write_all(toml.as_bytes()).map_err(|e| e.to_string())?;
 
@@ -400,24 +400,89 @@ async fn async_profile(
         println!("Profile path: {:?}", file_path.clone());
         println!("Profile {} saved", app_state.profile.clone());
         Ok(app_state.profile.clone())
-    } else if invoke_message == "load" {
-        Ok("test".to_string())
+    } else
+    //     if invoke_message == "load" {
+    //     let profile = profile_picker(invoke_message, profile_dir).await;
+    //     if let Some(ref path) = profile {
+    //         println!("Profile path: {}", path);
+    //         // Read the profile data from a toml file
+    //         // let toml_str = fs::read_to_string(path)?;
+    //         // let profile_data: AppProfile = toml::from_str(&toml_str)?;
+    //         let toml_str = fs::read_to_string(path).map_err(|e| e.to_string())?;
+    //         let profile_data: AppProfile = toml::from_str(&toml_str).map_err(|e| e.to_string())?;
+    //         println!("Profile Data: {:?}", profile_data);
+    //         app_state.os = profile_data.os.clone();
+    //         app_state.input_folder = profile_data.input_folder.clone();
+    //         app_state.backup_folder = profile_data.backup_folder.clone();
+    //         app_state.snapshot_folder = profile_data.snapshot_folder.clone();
+    //         app_state.backup_time = profile_data.backup_time.clone();
+    //         app_state.backup_number = profile_data.backup_number.clone();
+    //         app_state.snapshot_name = profile_data.snapshot_name.clone();
+    //         app_state.hotkey = profile_data.hotkey.clone();
+    //         app_state.profile = profile_data.profile.clone();
+    //         println!("Profile {} loaded", app_state.profile.clone());
+    //
+    //
+    //         Ok(profile_data.clone())
+    //     } else {
+    //         Err("Profile save as failed".into())
+    //     }
+    //     // Ok("test".to_string())
+    // } else
+    {
+        Err("Unknown invoke_message".to_string())
+    }
+    // Ok("test".to_string())
+}
+
+// An async function to load a profile
+#[tauri::command]
+async fn async_load_profile(
+    invoke_message: &str,
+    // state: State<'_, Mutex<AppState>>
+    // state: tauri::State<'_, TokioMutex<AppState>>, // Use tokio::sync::Mutex
+    state: tauri::State<'_, Arc<TokioMutex<AppState>>>, // Use Arc<TokioMutex<AppState>>
+                                                        // state: tauri::State<'_, tokio::sync::Mutex<AppState>>,
+) -> Result<AppProfile, String> {
+    let mut app_state = state.lock().await;
+    // get exe path
+    let exe_path = env::current_exe().expect("Failed to get exe path");
+    let exe_dir = exe_path.parent().expect("No parent directory");
+    let profile_dir = exe_dir.join("profiles");
+
+    if invoke_message == "load" {
+        let profile = profile_picker(invoke_message, profile_dir).await;
+        if let Some(ref path) = profile {
+            println!("Profile path: {}", path);
+            // Read the profile data from a toml file
+            let toml_str = fs::read_to_string(path).map_err(|e| e.to_string())?;
+            let profile_data: AppProfile = toml::from_str(&toml_str).map_err(|e| e.to_string())?;
+            println!("Profile Data: {:?}", profile_data);
+            app_state.os = profile_data.os.clone();
+            app_state.input_folder = profile_data.input_folder.clone();
+            app_state.backup_folder = profile_data.backup_folder.clone();
+            app_state.snapshot_folder = profile_data.snapshot_folder.clone();
+            app_state.backup_time = profile_data.backup_time.clone();
+            app_state.backup_number = profile_data.backup_number.clone();
+            app_state.snapshot_name = profile_data.snapshot_name.clone();
+            app_state.hotkey = profile_data.hotkey.clone();
+            app_state.profile = profile_data.profile.clone();
+            println!("Profile {} loaded", app_state.profile.clone());
+
+            Ok(profile_data)
+        } else {
+            Err("Profile load failed".into())
+        }
+        // Ok("test".to_string())
     } else {
         Err("Unknown invoke_message".to_string())
     }
     // Ok("test".to_string())
 }
-// Read the profile.txt or .json file
-// #[tauri::command]
-// fn read_file() -> Response {
-//     let data = std::fs::read("/path/to/file").unwrap();
-//     tauri::ipc::Response::new(data)
-// }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        // .manage(Mutex::new(AppState::default())) // Register the state
         .manage(Arc::new(TokioMutex::new(AppState::default()))) // Wrap the state in Arc and register it for async functions
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
@@ -426,8 +491,19 @@ pub fn run() {
             // read_file,
             async_snapshot,
             async_backup,
-            async_profile
+            async_save_profile,
+            async_load_profile
         ])
+        .on_window_event(|_window, event| {
+            if let tauri::WindowEvent::CloseRequested {
+                // api,
+                ..
+            } = event {
+                // TODO make this save a config.toml to the config path so you can save last used
+                // prufile
+                println!("Window is closing!");
+            }
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
