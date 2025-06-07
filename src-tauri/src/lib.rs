@@ -9,6 +9,7 @@ use tauri::ipc::Response;
 // Builder,
 // Manager
 // };
+use io::Write;
 use std::env;
 use std::fs;
 use std::io;
@@ -17,13 +18,14 @@ use std::path::Path;
 // use tokio::io;
 // use std::pin::Pin;
 // use std::future::Future;
+// use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::Mutex as TokioMutex;
 use tokio::task;
 use tokio::time::{sleep, Duration};
-use serde::Serialize;
 
-// State variable
+// State struct
 #[derive(Default)]
 struct AppState {
     os: String,
@@ -34,6 +36,35 @@ struct AppState {
     backup_time: u32,
     backup_number: u32,
     backup_status: bool,
+    snapshot_name: String,
+    hotkey: String,
+    profile: String,
+}
+
+// Profile Data struct
+// #[derive(Serialize)]
+// struct ProfileData {
+//     os: String,
+//     input_folder: String,
+//     backup_folder: String,
+//     snapshot_folder: String,
+//     backup_time: u32,
+//     backup_number: u32,
+//     snapshot_name: String,
+//     hotkey: String,
+//     profile: String,
+// }
+
+// Config struct
+// #[derive(Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
+struct AppProfile {
+    os: String,
+    input_folder: String,
+    backup_folder: String,
+    snapshot_folder: String,
+    backup_time: u32,
+    backup_number: u32,
     snapshot_name: String,
     hotkey: String,
     profile: String,
@@ -281,16 +312,12 @@ async fn profile_picker(invoke_message: &str, profile_dir: PathBuf) -> Option<St
     match invoke_message {
         "new" => FileDialog::new()
             .set_directory(profile_dir)
+            .add_filter("TOML files", &["toml"])
             .save_file()
             .map(|path: PathBuf| path.to_string_lossy().to_string()),
-        // "save" => {
-        // FileDialog::new()
-        //     .set_directory("/profile")
-        //     .save_file()
-        //     .map(|path: PathBuf| path.to_string_lossy().to_string())
-        // }
         "load" => FileDialog::new()
             .set_directory(profile_dir)
+            .add_filter("TOML files", &["toml"])
             .pick_file()
             .map(|path: PathBuf| path.to_string_lossy().to_string()),
         _ => Some("Error".to_string()),
@@ -301,12 +328,21 @@ async fn profile_picker(invoke_message: &str, profile_dir: PathBuf) -> Option<St
 #[tauri::command]
 async fn async_profile(
     invoke_message: &str,
+    data: AppProfile,
     // state: State<'_, Mutex<AppState>>
     // state: tauri::State<'_, TokioMutex<AppState>>, // Use tokio::sync::Mutex
     state: tauri::State<'_, Arc<TokioMutex<AppState>>>, // Use Arc<TokioMutex<AppState>>
                                                         // state: tauri::State<'_, tokio::sync::Mutex<AppState>>,
 ) -> Result<String, String> {
+    println!("lib.rs:335: data={:#?}", data);
+
     let mut app_state = state.lock().await;
+    // update form fields in app_state from data
+    app_state.backup_time = data.backup_time.clone();
+    app_state.backup_number = data.backup_number.clone();
+    app_state.snapshot_name = data.snapshot_name.clone();
+    app_state.hotkey = data.hotkey.clone();
+    // get exe path
     let exe_path = env::current_exe().expect("Failed to get exe path");
     let exe_dir = exe_path.parent().expect("No parent directory");
     let profile_dir = exe_dir.join("profiles");
@@ -315,29 +351,84 @@ async fn async_profile(
         // println!("Creating profile directory at: {:?}", profile_dir);
         fs::create_dir_all(&profile_dir).map_err(|e| e.to_string())?;
     }
-    let profile = profile_picker(invoke_message, profile_dir).await;
-    // TODO have the front ent send a json or something of all the field states for the app_state
-    // when it tries to save
-    // TODO use that to populate the toml profile 
     if invoke_message == "new" {
-    } else if invoke_message == "save" {
-    } else if invoke_message == "load" {
-    }
-    match profile {
-        Some(ref path) => {
-            app_state.profile = profile.clone().unwrap();
-            println!("Profile {} saved", profile.clone().unwrap());
-            Ok(path.into())
+        let profile = profile_picker(invoke_message, profile_dir).await;
+        if let Some(ref path) = profile {
+            let profile_name = Path::new(path)
+                .file_name()
+                .map(|s| s.to_string_lossy().into_owned())
+                .unwrap_or_else(|| "unknown".to_string());
+            println!("Profile name: {}", profile_name);
+            app_state.profile = profile_name.clone();
+
+            let profile_data = AppProfile {
+                os: app_state.os.clone(),
+                input_folder: app_state.input_folder.clone(),
+                backup_folder: app_state.backup_folder.clone(),
+                snapshot_folder: app_state.snapshot_folder.clone(),
+                backup_time: data.backup_time,
+                backup_number: data.backup_number,
+                snapshot_name: data.snapshot_name.clone(),
+                hotkey: data.hotkey.clone(),
+                profile: app_state.profile.clone(),
+            };
+            // Write the profile data to a toml file
+            let toml = toml::to_string(&profile_data).map_err(|e| e.to_string())?;
+            // let filename = format!("{}.toml", path);
+            let mut file = fs::File::create(&path).map_err(|e| e.to_string())?;
+            file.write_all(toml.as_bytes()).map_err(|e| e.to_string())?;
+
+            println!("Profile path: {}", path);
+            println!("Profile {} saved", app_state.profile.clone());
+            Ok(app_state.profile.clone())
+        } else {
+            Err("Profile save as failed".into())
         }
-        None => Err("Profile save failed".into()),
+    } else if invoke_message == "save" {
+        // if let Some(ref path) = profile {
+        if app_state.profile == "" {
+            return Err("No profile selected".into());
+        }
+        println!("Profile name: {}", app_state.profile);
+
+        let profile_data = AppProfile {
+            os: app_state.os.clone(),
+            input_folder: app_state.input_folder.clone(),
+            backup_folder: app_state.backup_folder.clone(),
+            snapshot_folder: app_state.snapshot_folder.clone(),
+            backup_time: data.backup_time,
+            backup_number: data.backup_number,
+            snapshot_name: data.snapshot_name.clone(),
+            hotkey: data.hotkey.clone(),
+            profile: app_state.profile.clone(),
+        };
+        // Write the profile data to a toml file
+        let toml = toml::to_string(&profile_data).map_err(|e| e.to_string())?;
+        let file_path = profile_dir.join(format!("{}.toml", app_state.profile.clone()));
+        // let filename = format!("{}.toml", path);
+        let mut file = fs::File::create(&file_path).map_err(|e| e.to_string())?;
+        file.write_all(toml.as_bytes()).map_err(|e| e.to_string())?;
+
+        println!("Profile path: {:?}", file_path.clone());
+        println!("Profile {} saved", app_state.profile.clone());
+        Ok(app_state.profile.clone())
+        // } else {
+        // Err("Profile save failed".into())
+        // }
+        // Ok("test".to_string())
+    } else if invoke_message == "load" {
+        Ok("test".to_string())
+    } else {
+        Err("Unknown invoke_message".to_string())
     }
+    // Ok("test".to_string())
 }
 // Read the profile.txt or .json file
-#[tauri::command]
-fn read_file() -> Response {
-    let data = std::fs::read("/path/to/file").unwrap();
-    tauri::ipc::Response::new(data)
-}
+// #[tauri::command]
+// fn read_file() -> Response {
+//     let data = std::fs::read("/path/to/file").unwrap();
+//     tauri::ipc::Response::new(data)
+// }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -348,7 +439,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_os,
             async_get_folder,
-            read_file,
+            // read_file,
             async_snapshot,
             async_backup,
             async_profile

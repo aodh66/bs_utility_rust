@@ -82,8 +82,8 @@ function handleClick(event: Event) {
         case "snapshotBtn": asyncSnapshot(); break;
         // case "snapshotHotkeyBtn": asyncRegisterHotkey(); break;
         case "newProfileBtn": asyncProfile("new"); break;
-        // case "saveProfileBtn": asyncSaveProfile(); break;
-        // case "loadProfileBtn": asyncLoadProfile(); break;
+        case "saveProfileBtn": asyncProfile("save"); break;
+        case "loadProfileBtn": asyncProfile("load"); break;
         default: notify("e", "Button click handler error");
     }
 }
@@ -236,23 +236,76 @@ function asyncBackup() {
 }
 
 function asyncProfile(invokeMessage: string) {
-    if (invokeMessage == "save") {
-        
-    }
-    console.log(params);
-    invoke('async_profile', { invokeMessage: invokeMessage })
-        .then((result: unknown) => {
-            const profile = result as string | null; // Narrow the type to string | null
-            if (profile != null && invokeMessage == "new" ) {
-                console.log(profile);
-                const profilePathElement = document.querySelector(`#profileName`)
-                if (profilePathElement) {
-                    profilePathElement.textContent = profile ?? "No profile selected";
-                }
+    if (invokeMessage == "load") {
+        // it needs to just send load and an empty object since it's getting all the data from file
+    } else if (invokeMessage == "new" || invokeMessage == "save") {
+        // it needs to get the data from the fields and the params and send it
+
+        let backupTime = params.backupTime;
+        const backupTimeBox = document.querySelector(`#backup-time`) as HTMLInputElement;
+        if (backupTimeBox && backupTimeBox.value != "") {
+            if (!isNaN(backupTimeBox.valueAsNumber) && backupTimeBox.valueAsNumber > 0) {
+                params.backupTime = backupTimeBox.valueAsNumber
+                backupTime = backupTimeBox.valueAsNumber
             }
-        })
-        .catch((error) => {
-            notify("e", `${error} getting profile`);
-        });
+        }
+
+        let backupNumber = params.backupNumber;
+        const backupNumberBox = document.querySelector(`#backup-number`) as HTMLInputElement;
+        if (backupNumberBox && backupNumberBox.value != "") {
+            if (!isNaN(backupNumberBox.valueAsNumber) && backupNumberBox.valueAsNumber > 0) {
+                params.backupNumber = backupNumberBox.valueAsNumber
+                backupNumber = backupNumberBox.valueAsNumber;
+            }
+        }
+
+        let snapshotName = "";
+        const snapshotNameBox = document.querySelector(`#snapshotNameBox`) as HTMLInputElement;
+        if (snapshotNameBox && snapshotNameBox.value) {
+            params.snapshotName = snapshotNameBox.value
+            snapshotName = snapshotNameBox.value
+        }
+
+        let hotkey = "";
+        const hotkeyBox = document.querySelector(`#snapshotHotkeyBox`) as HTMLInputElement;
+        if (hotkeyBox && hotkeyBox.value) {
+            params.hotkey = hotkeyBox.value
+            hotkey = hotkeyBox.value
+        }
+
+        let data: { [key: string]: string | number | boolean } = {
+            os: params.os,
+            input_folder: params.inputFolder,
+            backup_folder: params.backupFolder,
+            snapshot_folder: params.snapshotFolder,
+            backup_time: backupTime,
+            backup_number: backupNumber,
+            snapshot_name: snapshotName,
+            hotkey: hotkey,
+            profile: params.profile,
+        }
+
+        console.log(data);
+        invoke('async_profile', { invokeMessage: invokeMessage, data: data })
+            .then((result: unknown) => {
+                const profile = result as string | null; // Narrow the type to string | null
+                if (profile != null && invokeMessage == "new") {
+                    console.log(`new profile created ${profile}`);
+                    params.profile = profile;
+                    notify("m", `new profile created ${profile}`);
+                    const profilePathElement = document.querySelector(`#profileName`)
+                    if (profilePathElement) {
+                        profilePathElement.textContent = profile ?? "No profile selected";
+                    }
+                } else if (profile != null && invokeMessage == "save") {
+                    console.log(`${profile} saved`);
+                    notify("m", `${profile} saved`);
+                    
+                }
+            })
+            .catch((error) => {
+                notify("e", `${error}`);
+            });
+    }
 }
 

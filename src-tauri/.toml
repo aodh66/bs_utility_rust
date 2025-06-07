@@ -1,0 +1,9 @@
+os = "windows"
+input_folder = ""
+backup_folder = ""
+snapshot_folder = ""
+backup_time = 5
+backup_number = 5
+snapshot_name = "wee"
+hotkey = "Alt"
+profile = ""
