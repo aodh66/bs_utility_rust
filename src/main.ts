@@ -56,9 +56,9 @@ let params: Params = {
 
 
 // Get OS
-function getOS() {
+function getStartData() {
     // You can then call a method to update params where you are console.logging here
-    invoke('get_os', {})
+    invoke('get_start_data', {})
         .then((result: unknown) => {
             // const os = result as string | null; // Narrow the type to string | null
             // if (os != null) {
@@ -117,10 +117,10 @@ function getOS() {
         .catch((error) => console.error(error));
 }
 // Get OS when app starts for slash direction
-if (!params.os) {
-    getOS();
-}
-// getOS();
+// if (!params.os) {
+    // getOS();
+// }
+getStartData();
 
 // Clickhandler that monitors all button clicks
 function handleClick(event: Event) {

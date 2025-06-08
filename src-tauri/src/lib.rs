@@ -1,7 +1,7 @@
 // Imports
 use rfd::FileDialog;
 use std::path::PathBuf;
-use tauri::ipc::Response;
+// use tauri::ipc::Response;
 use tauri::Manager;
 // use tauri::{AppHandle, Emitter};
 // use tauri::State;
@@ -19,7 +19,6 @@ use std::path::Path;
 // use tokio::io;
 // use std::pin::Pin;
 // use std::future::Future;
-// use serde::Serialize;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::Mutex as TokioMutex;
@@ -43,7 +42,6 @@ struct AppState {
 }
 
 // Profile Data struct
-// #[derive(Serialize)]
 #[derive(Deserialize, Serialize, Debug)]
 struct AppProfile {
     os: String,
@@ -59,24 +57,9 @@ struct AppProfile {
 
 // Check OS
 #[tauri::command]
-async fn get_os(
-    // state: State<Mutex<AppState>>
-    // state: tauri::State<'_, TokioMutex<AppState>>, // Use tokio::sync::Mutex
+async fn get_start_data(
     state: tauri::State<'_, Arc<TokioMutex<AppState>>>, // Use Arc<TokioMutex<AppState>>
-// ) -> Result<String, String> {
 ) -> Result<AppProfile, String> {
-    // let mut app_state = state.lock().await;
-    // let machine_kind = if cfg!(unix) {
-    //     "unix".to_string()
-    // } else if cfg!(windows) {
-    //     "windows".to_string()
-    // } else {
-    //     "unknown".to_string()
-    // };
-    // println!("OS type: {:?}", &machine_kind);
-    // app_state.os = machine_kind.clone();
-    // Ok(machine_kind) // Return the machine_kind
-
     let mut app_state = state.lock().await;
     // get exe path
     let exe_path = env::current_exe().expect("Failed to get exe path");
@@ -93,7 +76,7 @@ async fn get_os(
         );
     }
     if app_state.profile.is_empty() {
-        return Err("No profile in config".into());
+        return Err("No profile saved in config".into());
     }
     let profile_path = profile_dir.join(app_state.profile.clone());
     println!("Profile path: {:?}", profile_path);
@@ -113,7 +96,6 @@ async fn get_os(
     println!("Profile {} loaded", app_state.profile.clone());
 
     Ok(profile_data)
-    // Ok("test".to_string())
 }
 
 // Opens native os dialog for folder selection
@@ -128,10 +110,7 @@ async fn folder_picker() -> Option<String> {
 #[tauri::command]
 async fn async_get_folder(
     invoke_message: &str,
-    // state: State<'_, Mutex<AppState>>
-    // state: tauri::State<'_, TokioMutex<AppState>>, // Use tokio::sync::Mutex
     state: tauri::State<'_, Arc<TokioMutex<AppState>>>, // Use Arc<TokioMutex<AppState>>
-                                                        // state: tauri::State<'_, tokio::sync::Mutex<AppState>>,
 ) -> Result<String, String> {
     // Call another async function and wait for it to finish
     let folder = folder_picker().await;
@@ -201,8 +180,6 @@ fn copy_folder(source: &Path, destination: &Path) -> Result<bool, io::Error> {
 #[tauri::command]
 async fn async_snapshot(
     invoke_message: &str,
-    // state: State<'_, Mutex<AppState>>
-    // state: tauri::State<'_, TokioMutex<AppState>>, // Use tokio::sync::Mutex
     state: tauri::State<'_, Arc<TokioMutex<AppState>>>, // Use Arc<TokioMutex<AppState>>
                                                         // state: tauri::State<'_, tokio::sync::Mutex<AppState>>,
 ) -> Result<bool, String> {
@@ -225,11 +202,10 @@ async fn async_snapshot(
 
 async fn callback_loop(
     source: PathBuf,
-    // destination: PathBuf,g 'added config generation + last used profile save on exit'
+    // destination: PathBuf,
     count: u32,
     backup_time: u32,
     backup_number: u32,
-    // state: tauri::State<'_, TokioMutex<AppState>>, // Use tokio::sync::Mutex
     // mut success_tx: tokio::sync::mpsc::Sender<bool>, // Channel to send success signals
     state: Arc<TokioMutex<AppState>>, // Use Arc to share state
 ) {
@@ -239,16 +215,16 @@ async fn callback_loop(
             let app_state = state.lock().await;
             let current_count = app_state.count;
             let backup_status = app_state.backup_status;
-            let backup_folder = app_state.backup_folder.clone(); // Clone the backup folder
-                                                                 // let dst: String;
-                                                                 // if app_state.os == "windows" {
-                                                                 //     // dst = backup_folder + "\\backup {i}";
-                                                                 //     dst = format!("{}\\backup {}", backup_folder, i + 1);
-                                                                 // } else {
-                                                                 //     // dst = backup_folder + "/backup {i}";
-                                                                 //     dst = format!("{}/backup {}", backup_folder, i + 1);
-                                                                 // }
-                                                                 // let destination: PathBuf = PathBuf::from(dst); // Convert to PathBuf
+            let backup_folder = app_state.backup_folder.clone();
+            // let dst: String;
+            // if app_state.os == "windows" {
+            //     // dst = backup_folder + "\\backup {i}";
+            //     dst = format!("{}\\backup {}", backup_folder, i + 1);
+            // } else {
+            //     // dst = backup_folder + "/backup {i}";
+            //     dst = format!("{}/backup {}", backup_folder, i + 1);
+            // }
+            // let destination: PathBuf = PathBuf::from(dst); // Convert to PathBuf
             let dst: PathBuf = PathBuf::from(backup_folder); // Convert to PathBuf
                                                              //     dst = format!("{}\\backup {}", backup_folder, i + 1);
             let destination = dst.join(format!("backup {}", i + 1)); // add backup number
@@ -357,8 +333,6 @@ async fn profile_picker(invoke_message: &str, profile_dir: PathBuf) -> Option<St
 async fn async_save_profile(
     invoke_message: &str,
     data: AppProfile,
-    // state: State<'_, Mutex<AppState>>
-    // state: tauri::State<'_, TokioMutex<AppState>>, // Use tokio::sync::Mutex
     state: tauri::State<'_, Arc<TokioMutex<AppState>>>, // Use Arc<TokioMutex<AppState>>
                                                         // state: tauri::State<'_, tokio::sync::Mutex<AppState>>,
 ) -> Result<String, String> {
@@ -376,7 +350,6 @@ async fn async_save_profile(
     let profile_dir = exe_dir.join("profiles");
     // Create the profiles directory if it doesn't exist
     if !profile_dir.exists() {
-        // println!("Creating profile directory at: {:?}", profile_dir);
         fs::create_dir_all(&profile_dir).map_err(|e| e.to_string())?;
     }
 
@@ -428,36 +401,7 @@ async fn async_save_profile(
         println!("Profile path: {:?}", file_path.clone());
         println!("Profile {} saved", app_state.profile.clone());
         Ok(app_state.profile.clone())
-    } else
-    //     if invoke_message == "load" {
-    //     let profile = profile_picker(invoke_message, profile_dir).await;
-    //     if let Some(ref path) = profile {
-    //         println!("Profile path: {}", path);
-    //         // Read the profile data from a toml file
-    //         // let toml_str = fs::read_to_string(path)?;
-    //         // let profile_data: AppProfile = toml::from_str(&toml_str)?;
-    //         let toml_str = fs::read_to_string(path).map_err(|e| e.to_string())?;
-    //         let profile_data: AppProfile = toml::from_str(&toml_str).map_err(|e| e.to_string())?;
-    //         println!("Profile Data: {:?}", profile_data);
-    //         app_state.os = profile_data.os.clone();
-    //         app_state.input_folder = profile_data.input_folder.clone();
-    //         app_state.backup_folder = profile_data.backup_folder.clone();
-    //         app_state.snapshot_folder = profile_data.snapshot_folder.clone();
-    //         app_state.backup_time = profile_data.backup_time.clone();
-    //         app_state.backup_number = profile_data.backup_number.clone();
-    //         app_state.snapshot_name = profile_data.snapshot_name.clone();
-    //         app_state.hotkey = profile_data.hotkey.clone();
-    //         app_state.profile = profile_data.profile.clone();
-    //         println!("Profile {} loaded", app_state.profile.clone());
-    //
-    //
-    //         Ok(profile_data.clone())
-    //     } else {
-    //         Err("Profile save as failed".into())
-    //     }
-    //     // Ok("test".to_string())
-    // } else
-    {
+    } else {
         Err("Unknown invoke_message".to_string())
     }
     // Ok("test".to_string())
@@ -467,13 +411,9 @@ async fn async_save_profile(
 #[tauri::command]
 async fn async_load_profile(
     invoke_message: &str,
-    // state: State<'_, Mutex<AppState>>
-    // state: tauri::State<'_, TokioMutex<AppState>>, // Use tokio::sync::Mutex
     state: tauri::State<'_, Arc<TokioMutex<AppState>>>, // Use Arc<TokioMutex<AppState>>
-                                                        // state: tauri::State<'_, tokio::sync::Mutex<AppState>>,
 ) -> Result<AppProfile, String> {
     let mut app_state = state.lock().await;
-    // get exe path
     let exe_path = env::current_exe().expect("Failed to get exe path");
     let exe_dir = exe_path.parent().expect("No parent directory");
     let profile_dir = exe_dir.join("profiles");
@@ -501,7 +441,6 @@ async fn async_load_profile(
         } else {
             Err("Profile load failed".into())
         }
-        // Ok("test".to_string())
     } else {
         Err("Unknown invoke_message".to_string())
     }
@@ -514,7 +453,7 @@ pub fn run() {
         .manage(Arc::new(TokioMutex::new(AppState::default()))) // Wrap the state in Arc and register it for async functions
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
-            get_os,
+            get_start_data,
             async_get_folder,
             async_snapshot,
             async_backup,
