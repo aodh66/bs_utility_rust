@@ -60,13 +60,58 @@ function getOS() {
     // You can then call a method to update params where you are console.logging here
     invoke('get_os', {})
         .then((result: unknown) => {
-            const os = result as string | null; // Narrow the type to string | null
-            if (os != null) {
-                console.log(`OS is: ${os}`);
-                params.os = os; // Assign the value if it's not null
-                if (os == "unknown") {
-                    notify("e", "Unknown OS. App functionality unknown. Bugs may occur.");
+            // const os = result as string | null; // Narrow the type to string | null
+            // if (os != null) {
+            //     console.log(`OS is: ${os}`);
+            //     params.os = os; // Assign the value if it's not null
+            //     if (os == "unknown") {
+            //         notify("e", "Unknown OS. App functionality unknown. Bugs may occur.");
+            //     }
+            // }
+
+
+            const backupTimeBox = document.querySelector(`#backup-time`) as HTMLInputElement;
+            const backupNumberBox = document.querySelector(`#backup-number`) as HTMLInputElement;
+            const snapshotNameBox = document.querySelector(`#snapshotNameBox`) as HTMLInputElement;
+            const hotkeyBox = document.querySelector(`#snapshotHotkeyBox`) as HTMLInputElement;
+            const profileData = result as ProfileData | null; // Narrow the type to string | null
+            console.warn("DEBUGPRINT[25]: main.ts:265: profileData=", profileData)
+            if (profileData != null) {
+                // Update params
+                params.os = profileData.os;
+                params.inputFolder = profileData.input_folder;
+                params.backupFolder = profileData.backup_folder;
+                params.snapshotFolder = profileData.snapshot_folder;
+                params.backupTime = profileData.backup_time;
+                params.backupNumber = profileData.backup_number;
+                params.snapshotName = profileData.snapshot_name;
+                params.hotkey = profileData.hotkey;
+                params.profile = profileData.profile;
+
+                // Update UI
+                backupTimeBox.value = profileData.backup_time.toString();
+                backupNumberBox.value = profileData.backup_number.toString();
+                snapshotNameBox.value = profileData.snapshot_name;
+                hotkeyBox.value = profileData.hotkey;
+                const inputFolderPathElement = document.querySelector(`#inputFolderPath`)
+                if (inputFolderPathElement) {
+                    inputFolderPathElement.textContent = profileData.input_folder ?? "No folder selected";
                 }
+                const backupFolderPathElement = document.querySelector(`#backupFolderPath`)
+                if (backupFolderPathElement) {
+                    backupFolderPathElement.textContent = profileData.backup_folder ?? "No folder selected";
+                }
+                const snapshotFolderPathElement = document.querySelector(`#snapshotFolderPath`)
+                if (snapshotFolderPathElement) {
+                    snapshotFolderPathElement.textContent = profileData.snapshot_folder ?? "No folder selected";
+                }
+                const profilePathElement = document.querySelector(`#profileName`)
+                if (profilePathElement) {
+                    profilePathElement.textContent = profileData.profile ?? "No profile selected";
+                }
+
+                console.log(`${profileData.profile} profile loaded`);
+                notify("m", `${profileData.profile} profile loaded`);
             }
         })
         .catch((error) => console.error(error));

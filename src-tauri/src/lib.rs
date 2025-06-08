@@ -2,14 +2,14 @@
 use rfd::FileDialog;
 use std::path::PathBuf;
 use tauri::ipc::Response;
-use tauri::Manager; // <-- Add this line
-                    // use tauri::{AppHandle, Emitter};
-                    // use tauri::State;
-                    // use std::sync::Mutex;
-                    // use tauri::{
-                    // Builder,
-                    // Manager
-                    // };
+use tauri::Manager;
+// use tauri::{AppHandle, Emitter};
+// use tauri::State;
+// use std::sync::Mutex;
+// use tauri::{
+// Builder,
+// Manager
+// };
 use io::Write;
 use std::env;
 use std::fs;
@@ -63,18 +63,57 @@ async fn get_os(
     // state: State<Mutex<AppState>>
     // state: tauri::State<'_, TokioMutex<AppState>>, // Use tokio::sync::Mutex
     state: tauri::State<'_, Arc<TokioMutex<AppState>>>, // Use Arc<TokioMutex<AppState>>
-) -> Result<String, String> {
+// ) -> Result<String, String> {
+) -> Result<AppProfile, String> {
+    // let mut app_state = state.lock().await;
+    // let machine_kind = if cfg!(unix) {
+    //     "unix".to_string()
+    // } else if cfg!(windows) {
+    //     "windows".to_string()
+    // } else {
+    //     "unknown".to_string()
+    // };
+    // println!("OS type: {:?}", &machine_kind);
+    // app_state.os = machine_kind.clone();
+    // Ok(machine_kind) // Return the machine_kind
+
     let mut app_state = state.lock().await;
-    let machine_kind = if cfg!(unix) {
-        "unix".to_string()
-    } else if cfg!(windows) {
-        "windows".to_string()
-    } else {
-        "unknown".to_string()
-    };
-    println!("OS type: {:?}", &machine_kind);
-    app_state.os = machine_kind.clone();
-    Ok(machine_kind) // Return the machine_kind
+    // get exe path
+    let exe_path = env::current_exe().expect("Failed to get exe path");
+    let exe_dir = exe_path.parent().expect("No parent directory");
+    let config_dir = exe_dir.join("config");
+    let config_path = config_dir.join("config.toml");
+    let profile_dir = exe_dir.join("profiles");
+
+    if let Ok(profile_str) = fs::read_to_string(&config_path) {
+        app_state.profile = profile_str.trim().to_string();
+        eprintln!(
+            "DEBUGPRINT[34]: lib.rs:88: app_state.profile={:#?}",
+            app_state.profile.clone()
+        );
+    }
+    if app_state.profile.is_empty() {
+        return Err("No profile in config".into());
+    }
+    let profile_path = profile_dir.join(app_state.profile.clone());
+    println!("Profile path: {:?}", profile_path);
+    // Read the profile data from a toml file
+    let toml_str = fs::read_to_string(profile_path).map_err(|e| e.to_string())?;
+    let profile_data: AppProfile = toml::from_str(&toml_str).map_err(|e| e.to_string())?;
+    println!("Profile Data: {:?}", profile_data);
+    app_state.os = profile_data.os.clone();
+    app_state.input_folder = profile_data.input_folder.clone();
+    app_state.backup_folder = profile_data.backup_folder.clone();
+    app_state.snapshot_folder = profile_data.snapshot_folder.clone();
+    app_state.backup_time = profile_data.backup_time.clone();
+    app_state.backup_number = profile_data.backup_number.clone();
+    app_state.snapshot_name = profile_data.snapshot_name.clone();
+    app_state.hotkey = profile_data.hotkey.clone();
+    app_state.profile = profile_data.profile.clone();
+    println!("Profile {} loaded", app_state.profile.clone());
+
+    Ok(profile_data)
+    // Ok("test".to_string())
 }
 
 // Opens native os dialog for folder selection
@@ -186,7 +225,7 @@ async fn async_snapshot(
 
 async fn callback_loop(
     source: PathBuf,
-    // destination: PathBuf,
+    // destination: PathBuf,g 'added config generation + last used profile save on exit'
     count: u32,
     backup_time: u32,
     backup_number: u32,
@@ -341,7 +380,7 @@ async fn async_save_profile(
         fs::create_dir_all(&profile_dir).map_err(|e| e.to_string())?;
     }
 
-    let profile_data = AppProfile {
+    let mut profile_data = AppProfile {
         os: app_state.os.clone(),
         input_folder: app_state.input_folder.clone(),
         backup_folder: app_state.backup_folder.clone(),
@@ -362,6 +401,7 @@ async fn async_save_profile(
                 .unwrap_or_else(|| "unknown".to_string());
             println!("Profile name: {}", profile_name.clone());
             app_state.profile = profile_name.clone();
+            profile_data.profile = profile_name.clone();
 
             // Write the profile data to a toml file
             let toml = toml::to_string(&profile_data).map_err(|e| e.to_string())?;
