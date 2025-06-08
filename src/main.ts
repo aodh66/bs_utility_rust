@@ -155,11 +155,11 @@ function asyncSnapshot() {
         } else {
             snapshotName = "Snapshot"
         }
-        if (params.os == "windows") {
-            snapshotName = `\\${snapshotName}`;
-        } else {
-            snapshotName = `/${snapshotName}`;
-        }
+        // if (params.os == "windows") {
+        //     snapshotName = `\\${snapshotName}`;
+        // } else {
+        //     snapshotName = `/${snapshotName}`;
+        // }
         params.snapshotName = snapshotName
         invoke('async_snapshot', { invokeMessage: snapshotName })
             .then((result: unknown) => {

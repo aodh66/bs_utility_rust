@@ -2,13 +2,14 @@
 use rfd::FileDialog;
 use std::path::PathBuf;
 use tauri::ipc::Response;
-// use tauri::{AppHandle, Emitter};
-// use tauri::State;
-// use std::sync::Mutex;
-// use tauri::{
-// Builder,
-// Manager
-// };
+use tauri::Manager; // <-- Add this line
+                    // use tauri::{AppHandle, Emitter};
+                    // use tauri::State;
+                    // use std::sync::Mutex;
+                    // use tauri::{
+                    // Builder,
+                    // Manager
+                    // };
 use io::Write;
 use std::env;
 use std::fs;
@@ -26,7 +27,7 @@ use tokio::task;
 use tokio::time::{sleep, Duration};
 
 // State struct
-#[derive(Default)]
+#[derive(Default, Deserialize, Serialize, Debug)]
 struct AppState {
     os: String,
     count: u32,
@@ -42,20 +43,6 @@ struct AppState {
 }
 
 // Profile Data struct
-// #[derive(Serialize)]
-// struct ProfileData {
-//     os: String,
-//     input_folder: String,
-//     backup_folder: String,
-//     snapshot_folder: String,
-//     backup_time: u32,
-//     backup_number: u32,
-//     snapshot_name: String,
-//     hotkey: String,
-//     profile: String,
-// }
-
-// Config struct
 // #[derive(Serialize)]
 #[derive(Deserialize, Serialize, Debug)]
 struct AppProfile {
@@ -172,7 +159,6 @@ fn copy_folder(source: &Path, destination: &Path) -> Result<bool, io::Error> {
 }
 
 // Async function to snapshot folder
-// TODO change this away from os and to path.join() on the backend so you don't have to query for os at all
 #[tauri::command]
 async fn async_snapshot(
     invoke_message: &str,
@@ -189,10 +175,9 @@ async fn async_snapshot(
     let source: PathBuf = PathBuf::from(input_folder); // Convert to PathBuf
 
     let snapshot_folder = app_state.snapshot_folder.clone(); // Clone the snapshot folder
-    let snapshot_name = app_state.snapshot_name.clone(); // Clone the snapshot name
-    let dst = snapshot_folder + &snapshot_name; // Combine folder and name
-    let destination: PathBuf = PathBuf::from(dst); // Convert to PathBuf
-                                                   // Try to back up the folder
+    let dst: PathBuf = PathBuf::from(snapshot_folder); // create pathbuf
+    let destination = dst.join(app_state.snapshot_name.clone()); // add snapshot name
+                                                                 // Try to back up the folder
     task::spawn_blocking(move || copy_folder(&source, &destination))
         .await
         .map_err(|e| e.to_string())?
@@ -216,15 +201,18 @@ async fn callback_loop(
             let current_count = app_state.count;
             let backup_status = app_state.backup_status;
             let backup_folder = app_state.backup_folder.clone(); // Clone the backup folder
-            let dst: String;
-            if app_state.os == "windows" {
-                // dst = backup_folder + "\\backup {i}";
-                dst = format!("{}\\backup {}", backup_folder, i + 1);
-            } else {
-                // dst = backup_folder + "/backup {i}";
-                dst = format!("{}/backup {}", backup_folder, i + 1);
-            }
-            let destination: PathBuf = PathBuf::from(dst); // Convert to PathBuf
+                                                                 // let dst: String;
+                                                                 // if app_state.os == "windows" {
+                                                                 //     // dst = backup_folder + "\\backup {i}";
+                                                                 //     dst = format!("{}\\backup {}", backup_folder, i + 1);
+                                                                 // } else {
+                                                                 //     // dst = backup_folder + "/backup {i}";
+                                                                 //     dst = format!("{}/backup {}", backup_folder, i + 1);
+                                                                 // }
+                                                                 // let destination: PathBuf = PathBuf::from(dst); // Convert to PathBuf
+            let dst: PathBuf = PathBuf::from(backup_folder); // Convert to PathBuf
+                                                             //     dst = format!("{}\\backup {}", backup_folder, i + 1);
+            let destination = dst.join(format!("backup {}", i + 1)); // add backup number
 
             drop(app_state); // Release the lock before sleeping or performing backups
             if count != current_count || !backup_status {
@@ -372,7 +360,7 @@ async fn async_save_profile(
                 .file_name()
                 .map(|s| s.to_string_lossy().into_owned())
                 .unwrap_or_else(|| "unknown".to_string());
-            println!("Profile name: {}", profile_name);
+            println!("Profile name: {}", profile_name.clone());
             app_state.profile = profile_name.clone();
 
             // Write the profile data to a toml file
@@ -488,20 +476,29 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_os,
             async_get_folder,
-            // read_file,
             async_snapshot,
             async_backup,
             async_save_profile,
             async_load_profile
         ])
-        .on_window_event(|_window, event| {
-            if let tauri::WindowEvent::CloseRequested {
-                // api,
-                ..
-            } = event {
-                // TODO make this save a config.toml to the config path so you can save last used
-                // prufile
-                println!("Window is closing!");
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { .. } = event {
+                let app_handle = window.app_handle();
+                let state: tauri::State<Arc<TokioMutex<AppState>>> = app_handle.state();
+                let exe_path = env::current_exe().ok();
+                let exe_dir = exe_path.and_then(|p| p.parent().map(|d| d.to_path_buf()));
+                if let Some(exe_dir) = exe_dir {
+                    let config_dir = exe_dir.join("config");
+                    if !config_dir.exists() {
+                        let _ = fs::create_dir_all(&config_dir);
+                    }
+                    let app_state = state.blocking_lock();
+                    let config_path = config_dir.join("config.toml");
+                    if let Ok(mut file) = fs::File::create(&config_path) {
+                        let _ = file.write_all(app_state.profile.as_bytes());
+                        let _ = file.flush();
+                    }
+                }
             }
         })
         .run(tauri::generate_context!())
