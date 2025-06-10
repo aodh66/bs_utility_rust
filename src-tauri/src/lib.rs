@@ -28,6 +28,7 @@ use tokio::time::{sleep, Duration};
 // State struct
 #[derive(Default, Deserialize, Serialize, Debug)]
 struct AppState {
+    exe_dir: PathBuf,
     count: u32,
     input_folder: String,
     backup_folder: String,
@@ -53,7 +54,7 @@ struct AppProfile {
     profile: String,
 }
 
-// Check OS
+// Get exe path and populate state from last used profile
 #[tauri::command]
 async fn get_start_data(
     state: tauri::State<'_, Arc<TokioMutex<AppState>>>, // Use Arc<TokioMutex<AppState>>
@@ -62,9 +63,12 @@ async fn get_start_data(
     // get exe path
     let exe_path = env::current_exe().expect("Failed to get exe path");
     let exe_dir = exe_path.parent().expect("No parent directory");
-    let config_dir = exe_dir.join("config");
+    app_state.exe_dir = exe_dir.to_path_buf();
+    // let config_dir = exe_dir.join("config");
+    let config_dir = app_state.exe_dir.join("config");
     let config_path = config_dir.join("config.toml");
-    let profile_dir = exe_dir.join("profiles");
+    // let profile_dir = exe_dir.join("profiles");
+    let profile_dir = app_state.exe_dir.join("profiles");
 
     if let Ok(profile_str) = fs::read_to_string(&config_path) {
         app_state.profile = profile_str.trim().to_string();
