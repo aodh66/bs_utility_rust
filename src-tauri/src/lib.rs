@@ -64,10 +64,8 @@ async fn get_start_data(
     let exe_path = env::current_exe().expect("Failed to get exe path");
     let exe_dir = exe_path.parent().expect("No parent directory");
     app_state.exe_dir = exe_dir.to_path_buf();
-    // let config_dir = exe_dir.join("config");
     let config_dir = app_state.exe_dir.join("config");
     let config_path = config_dir.join("config.toml");
-    // let profile_dir = exe_dir.join("profiles");
     let profile_dir = app_state.exe_dir.join("profiles");
 
     if let Ok(profile_str) = fs::read_to_string(&config_path) {
@@ -336,10 +334,7 @@ async fn async_save_profile(
     app_state.backup_number = data.backup_number.clone();
     app_state.snapshot_name = data.snapshot_name.clone();
     app_state.hotkey = data.hotkey.clone();
-    // get exe path
-    let exe_path = env::current_exe().expect("Failed to get exe path");
-    let exe_dir = exe_path.parent().expect("No parent directory");
-    let profile_dir = exe_dir.join("profiles");
+    let profile_dir = app_state.exe_dir.join("profiles");
     // Create the profiles directory if it doesn't exist
     if !profile_dir.exists() {
         fs::create_dir_all(&profile_dir).map_err(|e| e.to_string())?;
@@ -405,9 +400,7 @@ async fn async_load_profile(
     state: tauri::State<'_, Arc<TokioMutex<AppState>>>, // Use Arc<TokioMutex<AppState>>
 ) -> Result<AppProfile, String> {
     let mut app_state = state.lock().await;
-    let exe_path = env::current_exe().expect("Failed to get exe path");
-    let exe_dir = exe_path.parent().expect("No parent directory");
-    let profile_dir = exe_dir.join("profiles");
+    let profile_dir = app_state.exe_dir.join("profiles");
 
     if invoke_message == "load" {
         let profile = profile_picker(invoke_message, profile_dir).await;
@@ -454,20 +447,16 @@ pub fn run() {
             if let tauri::WindowEvent::CloseRequested { .. } = event {
                 let app_handle = window.app_handle();
                 let state: tauri::State<Arc<TokioMutex<AppState>>> = app_handle.state();
-                let exe_path = env::current_exe().ok();
-                let exe_dir = exe_path.and_then(|p| p.parent().map(|d| d.to_path_buf()));
-                if let Some(exe_dir) = exe_dir {
-                    let config_dir = exe_dir.join("config");
+                let app_state = state.blocking_lock();
+                    let config_dir = app_state.exe_dir.join("config");
                     if !config_dir.exists() {
                         let _ = fs::create_dir_all(&config_dir);
                     }
-                    let app_state = state.blocking_lock();
                     let config_path = config_dir.join("config.toml");
                     if let Ok(mut file) = fs::File::create(&config_path) {
                         let _ = file.write_all(app_state.profile.as_bytes());
                         let _ = file.flush();
                     }
-                }
             }
         })
         .run(tauri::generate_context!())
