@@ -28,7 +28,6 @@ use tokio::time::{sleep, Duration};
 // State struct
 #[derive(Default, Deserialize, Serialize, Debug)]
 struct AppState {
-    os: String,
     count: u32,
     input_folder: String,
     backup_folder: String,
@@ -44,7 +43,6 @@ struct AppState {
 // Profile Data struct
 #[derive(Deserialize, Serialize, Debug)]
 struct AppProfile {
-    os: String,
     input_folder: String,
     backup_folder: String,
     snapshot_folder: String,
@@ -84,7 +82,6 @@ async fn get_start_data(
     let toml_str = fs::read_to_string(profile_path).map_err(|e| e.to_string())?;
     let profile_data: AppProfile = toml::from_str(&toml_str).map_err(|e| e.to_string())?;
     println!("Profile Data: {:?}", profile_data);
-    app_state.os = profile_data.os.clone();
     app_state.input_folder = profile_data.input_folder.clone();
     app_state.backup_folder = profile_data.backup_folder.clone();
     app_state.snapshot_folder = profile_data.snapshot_folder.clone();
@@ -216,15 +213,6 @@ async fn callback_loop(
             let current_count = app_state.count;
             let backup_status = app_state.backup_status;
             let backup_folder = app_state.backup_folder.clone();
-            // let dst: String;
-            // if app_state.os == "windows" {
-            //     // dst = backup_folder + "\\backup {i}";
-            //     dst = format!("{}\\backup {}", backup_folder, i + 1);
-            // } else {
-            //     // dst = backup_folder + "/backup {i}";
-            //     dst = format!("{}/backup {}", backup_folder, i + 1);
-            // }
-            // let destination: PathBuf = PathBuf::from(dst); // Convert to PathBuf
             let dst: PathBuf = PathBuf::from(backup_folder); // Convert to PathBuf
                                                              //     dst = format!("{}\\backup {}", backup_folder, i + 1);
             let destination = dst.join(format!("backup {}", i + 1)); // add backup number
@@ -354,7 +342,6 @@ async fn async_save_profile(
     }
 
     let mut profile_data = AppProfile {
-        os: app_state.os.clone(),
         input_folder: app_state.input_folder.clone(),
         backup_folder: app_state.backup_folder.clone(),
         snapshot_folder: app_state.snapshot_folder.clone(),
@@ -426,7 +413,6 @@ async fn async_load_profile(
             let toml_str = fs::read_to_string(path).map_err(|e| e.to_string())?;
             let profile_data: AppProfile = toml::from_str(&toml_str).map_err(|e| e.to_string())?;
             println!("Profile Data: {:?}", profile_data);
-            app_state.os = profile_data.os.clone();
             app_state.input_folder = profile_data.input_folder.clone();
             app_state.backup_folder = profile_data.backup_folder.clone();
             app_state.snapshot_folder = profile_data.snapshot_folder.clone();

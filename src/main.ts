@@ -1,16 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 // import { listen } from '@tauri-apps/api/event';
 
-// console.log("hello");
-// listen<string>('os-type', (event) => {
-//     console.log(`OS is: ${event.payload}`);
-// });
-
-// window.addEventListener("DOMContentLoaded", () => {
-// });
-
 type Params = {
-    os: string;
     inputFolder: string;
     backupFolder: string;
     snapshotFolder: string;
@@ -24,7 +15,6 @@ type Params = {
 
 // State object
 let params: Params = {
-    os: "",
     inputFolder: "",
     backupFolder: "",
     snapshotFolder: "",
@@ -36,49 +26,26 @@ let params: Params = {
     profile: "",
 }
 
-// function populateProfile() {
-//     // You can then call a method to update params where you are console.logging here
-//     invoke('get_profile', {})
-//         .then((result: unknown) => {
-//             const profile = result as string | null; // Narrow the type to string | null
-//             if (profile != null) {
-//                 console.log(`Loaded profile: ${profile}`);
-//                 params.profile = profile; // Assign the value if it's not null
-//                 const profileNameElement = document.querySelector(`#profileName`);
-//                 if (profileNameElement) {
-//                     profileNameElement.textContent = profile ?? "No profile selected";
-//                 }
-//             }
-//         })
-//         .catch((error) => console.error(error));
-// }
-// populateProfile();
+const backupMessageElement = document.querySelector(`#backupMessage`)
+const backupTimeBox = document.querySelector(`#backup-time`) as HTMLInputElement;
+const backupNumberBox = document.querySelector(`#backup-number`) as HTMLInputElement;
+const snapshotNameBox = document.querySelector(`#snapshotNameBox`) as HTMLInputElement;
+const hotkeyBox = document.querySelector(`#snapshotHotkeyBox`) as HTMLInputElement;
+const backupLight = document.querySelector(`#backupLight`) as HTMLInputElement;
+const backupBtn = document.querySelector(`#backupBtn`) as HTMLInputElement;
+const inputFolderPathElement = document.querySelector(`#inputFolderPath`)
+const backupFolderPathElement = document.querySelector(`#backupFolderPath`)
+const snapshotFolderPathElement = document.querySelector(`#snapshotFolderPath`)
+const profilePathElement = document.querySelector(`#profileName`)
 
-
-// Get OS
 function getStartData() {
     // You can then call a method to update params where you are console.logging here
     invoke('get_start_data', {})
         .then((result: unknown) => {
-            // const os = result as string | null; // Narrow the type to string | null
-            // if (os != null) {
-            //     console.log(`OS is: ${os}`);
-            //     params.os = os; // Assign the value if it's not null
-            //     if (os == "unknown") {
-            //         notify("e", "Unknown OS. App functionality unknown. Bugs may occur.");
-            //     }
-            // }
-
-
-            const backupTimeBox = document.querySelector(`#backup-time`) as HTMLInputElement;
-            const backupNumberBox = document.querySelector(`#backup-number`) as HTMLInputElement;
-            const snapshotNameBox = document.querySelector(`#snapshotNameBox`) as HTMLInputElement;
-            const hotkeyBox = document.querySelector(`#snapshotHotkeyBox`) as HTMLInputElement;
             const profileData = result as ProfileData | null; // Narrow the type to string | null
-            console.warn("DEBUGPRINT[25]: main.ts:265: profileData=", profileData)
+            // console.warn("DEBUGPRINT[25]: main.ts:265: profileData=", profileData)
             if (profileData != null) {
                 // Update params
-                params.os = profileData.os;
                 params.inputFolder = profileData.input_folder;
                 params.backupFolder = profileData.backup_folder;
                 params.snapshotFolder = profileData.snapshot_folder;
@@ -110,16 +77,11 @@ function getStartData() {
                     profilePathElement.textContent = profileData.profile ?? "No profile selected";
                 }
 
-                console.log(`${profileData.profile} profile loaded`);
                 notify("m", `${profileData.profile} profile loaded`);
             }
         })
         .catch((error) => console.error(error));
 }
-// Get OS when app starts for slash direction
-// if (!params.os) {
-    // getOS();
-// }
 getStartData();
 
 // Clickhandler that monitors all button clicks
@@ -151,13 +113,11 @@ document.querySelectorAll("button")?.forEach((button) => {
 function notify(type: string, message: string) {
     if (type == "e") {
         console.error(message)
-        const backupMessageElement = document.querySelector(`#backupMessage`)
         if (backupMessageElement) {
             backupMessageElement.textContent = message
         }
     } else if (type == "m") {
         console.log(message)
-        const backupMessageElement = document.querySelector(`#backupMessage`)
         if (backupMessageElement) {
             backupMessageElement.textContent = message
         }
@@ -186,7 +146,6 @@ function asyncGetFolder(invokeMessage: string) {
         });
 }
 
-// TODO change this away from os and to path.join() on the backend so you don't have to query for os at all
 function asyncSnapshot() {
     let snapshotName = "Snapshot";
     if (!params.inputFolder) {
@@ -194,17 +153,11 @@ function asyncSnapshot() {
     } else if (!params.snapshotFolder) {
         notify("e", "No snapshot destination folder selected");
     } else {
-        const snapshotNameBox = document.querySelector(`#snapshotNameBox`) as HTMLInputElement;
         if (snapshotNameBox && snapshotNameBox.value) {
             snapshotName = snapshotNameBox.value
         } else {
             snapshotName = "Snapshot"
         }
-        // if (params.os == "windows") {
-        //     snapshotName = `\\${snapshotName}`;
-        // } else {
-        //     snapshotName = `/${snapshotName}`;
-        // }
         params.snapshotName = snapshotName
         invoke('async_snapshot', { invokeMessage: snapshotName })
             .then((result: unknown) => {
@@ -231,9 +184,6 @@ function asyncBackup() {
     } else if (!params.backupFolder) {
         notify("e", "No backup destination folder selected");
     } else {
-        let backupTimeBox = document.querySelector(`#backup-time`) as HTMLInputElement;
-        let backupNumberBox = document.querySelector(`#backup-number`) as HTMLInputElement;
-
         if (backupTimeBox && backupTimeBox.value != "") {
             if (!isNaN(backupTimeBox.valueAsNumber) && backupTimeBox.valueAsNumber > 0) {
                 backupTime = backupTimeBox.valueAsNumber;
@@ -268,8 +218,6 @@ function asyncBackup() {
                 const success = result as boolean | null; // Narrow the type to string | null
                 if (success != null) {
                     if (success) {
-                        let backupLight = document.querySelector(`#backupLight`) as HTMLInputElement;
-                        let backupBtn = document.querySelector(`#backupBtn`) as HTMLInputElement;
                         if (params.backupStatus == true) {
                             notify("m", `Backup Started`);
                             backupLight.classList.add("green-light");
@@ -294,7 +242,6 @@ function asyncBackup() {
 }
 
 type ProfileData = {
-    os: string;
     input_folder: string;
     backup_folder: string;
     snapshot_folder: string;
@@ -307,16 +254,11 @@ type ProfileData = {
 
 function asyncProfile(invokeMessage: string) {
     let backupTime = params.backupTime;
-    const backupTimeBox = document.querySelector(`#backup-time`) as HTMLInputElement;
     let backupNumber = params.backupNumber;
-    const backupNumberBox = document.querySelector(`#backup-number`) as HTMLInputElement;
     let snapshotName = "";
-    const snapshotNameBox = document.querySelector(`#snapshotNameBox`) as HTMLInputElement;
     let hotkey = "";
-    const hotkeyBox = document.querySelector(`#snapshotHotkeyBox`) as HTMLInputElement;
 
     let data: ProfileData = {
-        os: params.os,
         input_folder: params.inputFolder,
         backup_folder: params.backupFolder,
         snapshot_folder: params.snapshotFolder,
@@ -335,7 +277,6 @@ function asyncProfile(invokeMessage: string) {
                 console.warn("DEBUGPRINT[25]: main.ts:265: profileData=", profileData)
                 if (profileData != null) {
                     // Update params
-                    params.os = profileData.os;
                     params.inputFolder = profileData.input_folder;
                     params.backupFolder = profileData.backup_folder;
                     params.snapshotFolder = profileData.snapshot_folder;
@@ -350,19 +291,15 @@ function asyncProfile(invokeMessage: string) {
                     backupNumberBox.value = profileData.backup_number.toString();
                     snapshotNameBox.value = profileData.snapshot_name;
                     hotkeyBox.value = profileData.hotkey;
-                    const inputFolderPathElement = document.querySelector(`#inputFolderPath`)
                     if (inputFolderPathElement) {
                         inputFolderPathElement.textContent = profileData.input_folder ?? "No folder selected";
                     }
-                    const backupFolderPathElement = document.querySelector(`#backupFolderPath`)
                     if (backupFolderPathElement) {
                         backupFolderPathElement.textContent = profileData.backup_folder ?? "No folder selected";
                     }
-                    const snapshotFolderPathElement = document.querySelector(`#snapshotFolderPath`)
                     if (snapshotFolderPathElement) {
                         snapshotFolderPathElement.textContent = profileData.snapshot_folder ?? "No folder selected";
                     }
-                    const profilePathElement = document.querySelector(`#profileName`)
                     if (profilePathElement) {
                         profilePathElement.textContent = profileData.profile ?? "No profile selected";
                     }
@@ -402,7 +339,6 @@ function asyncProfile(invokeMessage: string) {
         }
 
         data = {
-            os: params.os,
             input_folder: params.inputFolder,
             backup_folder: params.backupFolder,
             snapshot_folder: params.snapshotFolder,
