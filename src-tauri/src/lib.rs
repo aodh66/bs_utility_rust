@@ -15,15 +15,22 @@ use std::env;
 use std::fs;
 use std::io;
 use std::path::Path;
+use std::sync::Arc;
+// use std::thread;
 // use tokio::fs;
 // use tokio::io;
 // use std::pin::Pin;
 // use std::future::Future;
+// use global_hotkey::{
+//     hotkey::{Code, HotKey, Modifiers},
+//     GlobalHotKeyEvent, GlobalHotKeyManager,
+// };
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
+// use tokio::runtime::Handle;
 use tokio::sync::Mutex as TokioMutex;
 use tokio::task;
 use tokio::time::{sleep, Duration};
+// use futures::executor::block_on;
 
 // State struct
 #[derive(Default, Deserialize, Serialize, Debug)]
@@ -37,7 +44,7 @@ struct AppState {
     backup_number: u32,
     backup_status: bool,
     snapshot_name: String,
-    hotkey: String,
+    // hotkey: String,
     profile: String,
 }
 
@@ -50,7 +57,7 @@ struct AppProfile {
     backup_time: u32,
     backup_number: u32,
     snapshot_name: String,
-    hotkey: String,
+    // hotkey: String,
     profile: String,
 }
 
@@ -79,18 +86,18 @@ async fn get_start_data(
         return Err("No profile saved in config".into());
     }
     let profile_path = profile_dir.join(app_state.profile.clone());
-    println!("Profile path: {:?}", profile_path);
+    // println!("Profile path: {:?}", profile_path);
     // Read the profile data from a toml file
     let toml_str = fs::read_to_string(profile_path).map_err(|e| e.to_string())?;
     let profile_data: AppProfile = toml::from_str(&toml_str).map_err(|e| e.to_string())?;
-    println!("Profile Data: {:?}", profile_data);
+    // println!("Profile Data: {:?}", profile_data);
     app_state.input_folder = profile_data.input_folder.clone();
     app_state.backup_folder = profile_data.backup_folder.clone();
     app_state.snapshot_folder = profile_data.snapshot_folder.clone();
     app_state.backup_time = profile_data.backup_time.clone();
     app_state.backup_number = profile_data.backup_number.clone();
     app_state.snapshot_name = profile_data.snapshot_name.clone();
-    app_state.hotkey = profile_data.hotkey.clone();
+    // app_state.hotkey = profile_data.hotkey.clone();
     app_state.profile = profile_data.profile.clone();
     println!("Profile {} loaded", app_state.profile.clone());
 
@@ -143,6 +150,49 @@ async fn async_get_folder(
         }
         None => Err("Path fetch error".into()),
     }
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+enum U32OrString {
+    Number(u32),
+    Text(String),
+}
+
+// Async function to update input field data
+#[tauri::command]
+async fn send_input_field_data(
+    invoke_message: &str,
+    value: U32OrString,
+    // state: tauri::State<'_, TokioMutex<AppState>>, // Use tokio::sync::Mutex
+    state: tauri::State<'_, Arc<TokioMutex<AppState>>>, // Use Arc<TokioMutex<AppState>>
+) -> Result<bool, String> {
+    let mut app_state = state.lock().await; // Use tokio::sync::Mutex
+    match invoke_message {
+        "backup_time" => {
+            if let U32OrString::Number(n) = value {
+                app_state.backup_time = n;
+            } else {
+                return Err("Expected a number for backup_time".into());
+            }
+        }
+        "backup_number" => {
+            if let U32OrString::Number(n) = value {
+                app_state.backup_number = n;
+            } else {
+                return Err("Expected a number for backup_number".into());
+            }
+        }
+        "snapshot_name" => {
+            if let U32OrString::Text(s) = value {
+                app_state.snapshot_name = s.to_string();
+                println!("snapshot_name: {}", app_state.snapshot_name);
+            } else {
+                return Err("Expected a string for snapshot_name".into());
+            }
+        }
+        _ => return Err("Invalid invoke_message".into()),
+    }
+    Ok(true)
 }
 
 // Function to copy folder
@@ -333,7 +383,7 @@ async fn async_save_profile(
     app_state.backup_time = data.backup_time.clone();
     app_state.backup_number = data.backup_number.clone();
     app_state.snapshot_name = data.snapshot_name.clone();
-    app_state.hotkey = data.hotkey.clone();
+    // app_state.hotkey = data.hotkey.clone();
     let profile_dir = app_state.exe_dir.join("profiles");
     // Create the profiles directory if it doesn't exist
     if !profile_dir.exists() {
@@ -347,7 +397,7 @@ async fn async_save_profile(
         backup_time: data.backup_time,
         backup_number: data.backup_number,
         snapshot_name: data.snapshot_name.clone(),
-        hotkey: data.hotkey.clone(),
+        // hotkey: data.hotkey.clone(),
         profile: app_state.profile.clone(),
     };
 
@@ -416,7 +466,7 @@ async fn async_load_profile(
             app_state.backup_time = profile_data.backup_time.clone();
             app_state.backup_number = profile_data.backup_number.clone();
             app_state.snapshot_name = profile_data.snapshot_name.clone();
-            app_state.hotkey = profile_data.hotkey.clone();
+            // app_state.hotkey = profile_data.hotkey.clone();
             app_state.profile = profile_data.profile.clone();
             println!("Profile {} loaded", app_state.profile.clone());
 
@@ -433,10 +483,13 @@ async fn async_load_profile(
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        // .manage(state.clone())
         .manage(Arc::new(TokioMutex::new(AppState::default()))) // Wrap the state in Arc and register it for async functions
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             get_start_data,
+            send_input_field_data,
             async_get_folder,
             async_snapshot,
             async_backup,
@@ -448,15 +501,15 @@ pub fn run() {
                 let app_handle = window.app_handle();
                 let state: tauri::State<Arc<TokioMutex<AppState>>> = app_handle.state();
                 let app_state = state.blocking_lock();
-                    let config_dir = app_state.exe_dir.join("config");
-                    if !config_dir.exists() {
-                        let _ = fs::create_dir_all(&config_dir);
-                    }
-                    let config_path = config_dir.join("config.toml");
-                    if let Ok(mut file) = fs::File::create(&config_path) {
-                        let _ = file.write_all(app_state.profile.as_bytes());
-                        let _ = file.flush();
-                    }
+                let config_dir = app_state.exe_dir.join("config");
+                if !config_dir.exists() {
+                    let _ = fs::create_dir_all(&config_dir);
+                }
+                let config_path = config_dir.join("config.toml");
+                if let Ok(mut file) = fs::File::create(&config_path) {
+                    let _ = file.write_all(app_state.profile.as_bytes());
+                    let _ = file.flush();
+                }
             }
         })
         .run(tauri::generate_context!())

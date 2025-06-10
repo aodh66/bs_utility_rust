@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+// import { register } from '@tauri-apps/plugin-global-shortcut';
 // import { listen } from '@tauri-apps/api/event';
 
 type Params = {
@@ -9,7 +10,7 @@ type Params = {
     backupNumber: number;
     backupStatus: boolean;
     snapshotName: string;
-    hotkey: string;
+    // hotkey: string;
     profile: string;
 }
 
@@ -22,7 +23,7 @@ let params: Params = {
     backupNumber: 2,
     backupStatus: false,
     snapshotName: "",
-    hotkey: "",
+    // hotkey: "",
     profile: "",
 }
 
@@ -30,7 +31,7 @@ const backupMessageElement = document.querySelector(`#backupMessage`)
 const backupTimeBox = document.querySelector(`#backup-time`) as HTMLInputElement;
 const backupNumberBox = document.querySelector(`#backup-number`) as HTMLInputElement;
 const snapshotNameBox = document.querySelector(`#snapshotNameBox`) as HTMLInputElement;
-const hotkeyBox = document.querySelector(`#snapshotHotkeyBox`) as HTMLInputElement;
+// const hotkeyBox = document.querySelector(`#snapshotHotkeyBox`) as HTMLInputElement;
 const backupLight = document.querySelector(`#backupLight`) as HTMLInputElement;
 const backupBtn = document.querySelector(`#backupBtn`) as HTMLInputElement;
 const inputFolderPathElement = document.querySelector(`#inputFolderPath`)
@@ -52,14 +53,14 @@ function getStartData() {
                 params.backupTime = profileData.backup_time;
                 params.backupNumber = profileData.backup_number;
                 params.snapshotName = profileData.snapshot_name;
-                params.hotkey = profileData.hotkey;
+                // params.hotkey = profileData.hotkey;
                 params.profile = profileData.profile;
 
                 // Update UI
                 backupTimeBox.value = profileData.backup_time.toString();
                 backupNumberBox.value = profileData.backup_number.toString();
                 snapshotNameBox.value = profileData.snapshot_name;
-                hotkeyBox.value = profileData.hotkey;
+                // hotkeyBox.value = profileData.hotkey;
                 const inputFolderPathElement = document.querySelector(`#inputFolderPath`)
                 if (inputFolderPathElement) {
                     inputFolderPathElement.textContent = profileData.input_folder ?? "No folder selected";
@@ -77,7 +78,7 @@ function getStartData() {
                     profilePathElement.textContent = profileData.profile ?? "No profile selected";
                 }
 
-                notify("m", `${profileData.profile} profile loaded`);
+                notify("m", `Profile Looded: ${profileData.profile}`);
             }
         })
         .catch((error) => console.error(error));
@@ -99,13 +100,31 @@ function handleClick(event: Event) {
         case "newProfileBtn": asyncProfile("new"); break;
         case "saveProfileBtn": asyncProfile("save"); break;
         case "loadProfileBtn": asyncProfile("load"); break;
-        default: notify("e", "Button click handler error");
+        default: notify("e", "Error: Button click handler");
     }
 }
 
 // Apply handleClick to all of the buttons
 document.querySelectorAll("button")?.forEach((button) => {
     button.addEventListener("click", (event) => handleClick(event))
+})
+
+// handler to send input field data on loss of focus
+function inputSendData(event: Event) {
+    const target = event.target as HTMLInputElement
+    const id = target.id
+    switch (id) {
+        case "backup-time": sendInputFieldData("backup-time", parseInt(target.value)); break;
+        case "backup-number": sendInputFieldData("backup-number", parseInt(target.value)); break;
+        case "snapshotNameBox": sendInputFieldData("snapshotNameBox", target.value); break;
+        // case "hotkeyBox": params.hotkey = target.value; break;
+        default: notify("e", "Error: Input field handler");
+    }
+}
+
+// Apply inputSendData to all input fields
+document.querySelectorAll(".input")?.forEach((input) => {
+    input.addEventListener("blur", (event) => inputSendData(event))
 })
 
 // Function to notify user and log errors/messages to console
@@ -121,6 +140,51 @@ function notify(type: string, message: string) {
         if (backupMessageElement) {
             backupMessageElement.textContent = message
         }
+    }
+}
+
+// Function to send input field data to backend
+function sendInputFieldData(message: string, value: number | string) {
+    let invokeMessage = "";
+    switch (message) {
+        case "backup-time": invokeMessage = "backup_time"; break;
+        case "backup-number": invokeMessage = "backup_number"; break;
+        case "snapshotNameBox": invokeMessage = "snapshot_name"; break;
+        // case "hotkeyBox": params.hotkey = target.value; break;
+        default: notify("e", "Error: Input field handler");
+    }
+    if (invokeMessage == "backup_time" || invokeMessage == "backup_number") {
+        {
+            invoke('send_input_field_data', { invokeMessage: invokeMessage, value: { "Number": value } })
+                .then((result: unknown) => {
+                    const success = result as boolean | null; // Narrow the type to string | null
+                    if (success != null) {
+                        if (success) {
+                            // console.log(`${invokeMessage} value saved`);
+                        } else {
+                            notify("e", `Error: ${invokeMessage} value not saved`);
+                        }
+                    }
+                })
+                .catch((error) => {
+                    notify("e", `Error: ${error} saving ${invokeMessage} value`);
+                });
+        }
+    } else if (invokeMessage == "snapshot_name") {
+        invoke('send_input_field_data', { invokeMessage: invokeMessage, value: { "Text": value } })
+            .then((result: unknown) => {
+                const success = result as boolean | null; // Narrow the type to string | null
+                if (success != null) {
+                    if (success) {
+                        // console.log(`${invokeMessage} value saved`);
+                    } else {
+                        notify("e", `Error: ${invokeMessage} value not saved`);
+                    }
+                }
+            })
+            .catch((error) => {
+                notify("e", `Error: ${error} saving ${invokeMessage} value`);
+            });
     }
 }
 
@@ -142,16 +206,16 @@ function asyncGetFolder(invokeMessage: string) {
             }
         })
         .catch((error) => {
-            notify("e", `${error} getting ${invokeMessage}Folder`);
+            notify("e", `Error: ${error} getting ${invokeMessage}Folder`);
         });
 }
 
 function asyncSnapshot() {
     let snapshotName = "Snapshot";
     if (!params.inputFolder) {
-        notify("e", "No input folder selected");
+        notify("e", "Error: No input folder selected");
     } else if (!params.snapshotFolder) {
-        notify("e", "No snapshot destination folder selected");
+        notify("e", "Error: No snapshot destination folder selected");
     } else {
         if (snapshotNameBox && snapshotNameBox.value) {
             snapshotName = snapshotNameBox.value
@@ -164,14 +228,14 @@ function asyncSnapshot() {
                 const success = result as boolean | null; // Narrow the type to string | null
                 if (success != null) {
                     if (success) {
-                        notify("m", `${snapshotName} Snapshot Saved`);
+                        notify("m", `Snapshot Saved: ${snapshotName}`);
                     } else {
-                        notify("e", `${snapshotName} Snapshot failed`);
+                        notify("e", `Error: Snapshot Failed ${snapshotName}`);
                     }
                 }
             })
             .catch((error) => {
-                notify("e", `${error} saving ${snapshotName} Snapshot`);
+                notify("e", `Error: ${error} saving snapshot ${snapshotName}`);
             });
     }
 }
@@ -180,16 +244,16 @@ function asyncBackup() {
     let backupTime = params.backupTime;
     let backupNumber = params.backupNumber;
     if (!params.inputFolder) {
-        notify("e", "No input folder selected");
+        notify("e", "Error: No input folder selected");
     } else if (!params.backupFolder) {
-        notify("e", "No backup destination folder selected");
+        notify("e", "Error: No backup destination folder selected");
     } else {
         if (backupTimeBox && backupTimeBox.value != "") {
             if (!isNaN(backupTimeBox.valueAsNumber) && backupTimeBox.valueAsNumber > 0) {
                 backupTime = backupTimeBox.valueAsNumber;
                 params.backupTime = backupTimeBox.valueAsNumber
             } else {
-                notify("e", "Input a number > 0 for backup frequency");
+                notify("e", "Error: Input a number > 0 for backup frequency");
             }
         }
 
@@ -198,7 +262,7 @@ function asyncBackup() {
                 backupNumber = backupNumberBox.valueAsNumber;
                 params.backupNumber = backupNumberBox.valueAsNumber
             } else {
-                notify("e", "Input a number > 0 for how many backups to keep");
+                notify("e", "Error: Input a number > 0 for how many backups to keep");
             }
         }
 
@@ -229,13 +293,13 @@ function asyncBackup() {
                         }
                         // turn the light to green and change the text to "Stop Backup"
                     } else {
-                        notify("e", `Backup failed`);
+                        notify("e", `Error: Backup failed`);
                         params.backupStatus = false;
                     }
                 }
             })
             .catch((error) => {
-                notify("e", `${error} saving Backup`);
+                notify("e", `Error: ${error} saving Backup`);
                 params.backupStatus = false;
             });
     }
@@ -248,7 +312,7 @@ type ProfileData = {
     backup_time: number;
     backup_number: number;
     snapshot_name: string;
-    hotkey: string;
+    // hotkey: string;
     profile: string;
 }
 
@@ -256,7 +320,7 @@ function asyncProfile(invokeMessage: string) {
     let backupTime = params.backupTime;
     let backupNumber = params.backupNumber;
     let snapshotName = "";
-    let hotkey = "";
+    // let hotkey = "";
 
     let data: ProfileData = {
         input_folder: params.inputFolder,
@@ -265,7 +329,7 @@ function asyncProfile(invokeMessage: string) {
         backup_time: backupTime,
         backup_number: backupNumber,
         snapshot_name: snapshotName,
-        hotkey: hotkey,
+        // hotkey: hotkey,
         profile: params.profile,
     }
 
@@ -283,14 +347,14 @@ function asyncProfile(invokeMessage: string) {
                     params.backupTime = profileData.backup_time;
                     params.backupNumber = profileData.backup_number;
                     params.snapshotName = profileData.snapshot_name;
-                    params.hotkey = profileData.hotkey;
+                    // params.hotkey = profileData.hotkey;
                     params.profile = profileData.profile;
 
                     // Update UI
                     backupTimeBox.value = profileData.backup_time.toString();
                     backupNumberBox.value = profileData.backup_number.toString();
                     snapshotNameBox.value = profileData.snapshot_name;
-                    hotkeyBox.value = profileData.hotkey;
+                    // hotkeyBox.value = profileData.hotkey;
                     if (inputFolderPathElement) {
                         inputFolderPathElement.textContent = profileData.input_folder ?? "No folder selected";
                     }
@@ -303,13 +367,11 @@ function asyncProfile(invokeMessage: string) {
                     if (profilePathElement) {
                         profilePathElement.textContent = profileData.profile ?? "No profile selected";
                     }
-
-                    console.log(`${profileData.profile} profile loaded`);
-                    notify("m", `${profileData.profile} profile loaded`);
+                    notify("m", `Profile Loaded: ${profileData.profile}`);
                 }
             })
             .catch((error) => {
-                notify("e", `${error}`);
+                notify("e", `Error: ${error} loading profile`);
             });
     } else if (invokeMessage == "new" || invokeMessage == "save") {
         // it needs to get the data from the fields and the params and send it
@@ -333,10 +395,10 @@ function asyncProfile(invokeMessage: string) {
             snapshotName = snapshotNameBox.value
         }
 
-        if (hotkeyBox && hotkeyBox.value) {
-            params.hotkey = hotkeyBox.value
-            hotkey = hotkeyBox.value
-        }
+        // if (hotkeyBox && hotkeyBox.value) {
+        //     params.hotkey = hotkeyBox.value
+        //     hotkey = hotkeyBox.value
+        // }
 
         data = {
             input_folder: params.inputFolder,
@@ -345,7 +407,7 @@ function asyncProfile(invokeMessage: string) {
             backup_time: backupTime,
             backup_number: backupNumber,
             snapshot_name: snapshotName,
-            hotkey: hotkey,
+            // hotkey: hotkey,
             profile: params.profile,
         }
 
@@ -354,21 +416,19 @@ function asyncProfile(invokeMessage: string) {
             .then((result: unknown) => {
                 const profile = result as string | null; // Narrow the type to string | null
                 if (profile != null && invokeMessage == "new") {
-                    console.log(`new profile created ${profile}`);
                     params.profile = profile;
-                    notify("m", `new profile created ${profile}`);
+                    notify("m", `Profile Created: ${profile}`);
                     const profilePathElement = document.querySelector(`#profileName`)
                     if (profilePathElement) {
                         profilePathElement.textContent = profile ?? "No profile selected";
                     }
                 } else if (profile != null && invokeMessage == "save") {
-                    console.log(`${profile} saved`);
-                    notify("m", `${profile} saved`);
+                    notify("m", `Profile Saved: ${profile}`);
 
                 }
             })
             .catch((error) => {
-                notify("e", `${error}`);
+                notify("e", `Error: ${error}`);
             });
     }
 }

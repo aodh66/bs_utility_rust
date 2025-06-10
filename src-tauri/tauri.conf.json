@@ -27,9 +27,9 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "icon": [
-        "icons/save.ico",
-        "icons/save.png"
-    ]
+    "icon": ["icons/save.ico", "icons/save.png"]
+  },
+  "plugins": {
+    "globalShortcut": {}
   }
 }
