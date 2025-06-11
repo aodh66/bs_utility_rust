@@ -19,7 +19,7 @@ Despite the tongue in cheek name of bs-utility, I am not a fan of bs, and I want
 - Auto load the last used profile on start.
 
 ## Installation
-For normal people (on Windows), you can download the installer .exe or .msi from the Releases section on the right of this page. Download, install, choose where to put it and you're off to the races. For Linux or MacOS users, you will have to compile the app yourself.
+For normal people (on Windows), you can download the installer .exe or .msi from the [Releases](https://github.com/aodh66/bs_utility_rust/releases) section on the right of this page. Download, install, choose where to put it and you're off to the races. For Linux or MacOS users, you will have to compile the app yourself.
 
 If you want to compile it yourself you can clone this repo, open in your code editor of choice if you want to look at anything, `npm i` and `cargo install` in your terminal as usual to get the packages, and then use `npm run tauri build` to build to the /src-tauri/target/release folder.
 
