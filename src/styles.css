@@ -141,6 +141,24 @@ main {
     text-align: end;
 }
 
+/* for end notification box*/
+.notification-end {
+    border-top: 1px solid grey;
+    align-items: start;
+    justify-content: end;
+}
+
+/* for end notification box*/
+.notification-end .notification-title {
+    margin-top: 0.5em;
+    font-size: 1.3em;
+}
+
+/* for end notification box*/
+.notification-end #backupMessage {
+    margin-bottom: 0;
+}
+
 .folder-input {
     display: flex;
   gap: 0.5em;
@@ -198,6 +216,7 @@ main {
   display: flex;
   gap: 2em;
   justify-content: space-between;
+  padding-bottom: 0.5em;
 }
 
 .profile-buttons {

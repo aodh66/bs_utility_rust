@@ -1,9 +1,4 @@
-// import { invoke } from "@tauri-apps/api/core";
-import {
-    invoke,
-    Channel
-} from '@tauri-apps/api/core';
-// import { register } from '@tauri-apps/plugin-global-shortcut';
+import { invoke } from "@tauri-apps/api/core";
 import { listen } from '@tauri-apps/api/event';
 
 type Params = {
