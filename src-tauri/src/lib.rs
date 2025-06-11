@@ -1,20 +1,18 @@
 // Imports
-use rfd::FileDialog;
-use std::path::PathBuf;
-use tauri::Manager;
-use tauri::{AppHandle, Emitter};
 use io::Write;
+use rfd::FileDialog;
+use serde::{Deserialize, Serialize};
 use std::env;
 use std::fs;
 use std::io;
 use std::path::Path;
+use std::path::PathBuf;
 use std::sync::Arc;
-use serde::{Deserialize, Serialize};
-// use tokio::runtime::Handle;
+use tauri::Manager;
+use tauri::{AppHandle, Emitter};
 use tokio::sync::Mutex as TokioMutex;
 use tokio::task;
 use tokio::time::{sleep, Duration};
-// use futures::executor::block_on;
 
 // State struct
 #[derive(Default, Deserialize, Serialize, Debug)]
@@ -32,7 +30,7 @@ struct AppState {
     profile: String,
 }
 
-// Profile Data struct
+// Profile Data struct for ipc
 #[derive(Deserialize, Serialize, Debug)]
 struct AppProfile {
     input_folder: String,
@@ -48,10 +46,10 @@ struct AppProfile {
 // Get exe path and populate state from last used profile
 #[tauri::command]
 async fn get_start_data(
-    state: tauri::State<'_, Arc<TokioMutex<AppState>>>, // Use Arc<TokioMutex<AppState>>
+    state: tauri::State<'_, Arc<TokioMutex<AppState>>>,
 ) -> Result<AppProfile, String> {
     let mut app_state = state.lock().await;
-    // get exe path
+    // Get exe path
     let exe_path = env::current_exe().expect("Failed to get exe path");
     let exe_dir = exe_path.parent().expect("No parent directory");
     app_state.exe_dir = exe_dir.to_path_buf();
@@ -61,20 +59,17 @@ async fn get_start_data(
 
     if let Ok(profile_str) = fs::read_to_string(&config_path) {
         app_state.profile = profile_str.trim().to_string();
-        eprintln!(
-            "DEBUGPRINT[34]: lib.rs:88: app_state.profile={:#?}",
-            app_state.profile.clone()
-        );
+        // eprintln!("DEBUGPRINT[34]: lib.rs:88: app_state.profile={:#?}", app_state.profile.clone());
     }
+
     if app_state.profile.is_empty() {
         return Err("No profile saved in config".into());
     }
+
     let profile_path = profile_dir.join(app_state.profile.clone());
-    // println!("Profile path: {:?}", profile_path);
     // Read the profile data from a toml file
     let toml_str = fs::read_to_string(profile_path).map_err(|e| e.to_string())?;
     let profile_data: AppProfile = toml::from_str(&toml_str).map_err(|e| e.to_string())?;
-    // println!("Profile Data: {:?}", profile_data);
     app_state.input_folder = profile_data.input_folder.clone();
     app_state.backup_folder = profile_data.backup_folder.clone();
     app_state.snapshot_folder = profile_data.snapshot_folder.clone();
@@ -136,6 +131,7 @@ async fn async_get_folder(
     }
 }
 
+// Input field data enum
 #[derive(Deserialize, Serialize, Debug)]
 enum U32OrString {
     Number(u32),
@@ -147,8 +143,7 @@ enum U32OrString {
 async fn send_input_field_data(
     invoke_message: &str,
     value: U32OrString,
-    // state: tauri::State<'_, TokioMutex<AppState>>, // Use tokio::sync::Mutex
-    state: tauri::State<'_, Arc<TokioMutex<AppState>>>, // Use Arc<TokioMutex<AppState>>
+    state: tauri::State<'_, Arc<TokioMutex<AppState>>>,
 ) -> Result<bool, String> {
     let mut app_state = state.lock().await; // Use tokio::sync::Mutex
     match invoke_message {
@@ -200,9 +195,8 @@ fn copy_folder(source: &Path, destination: &Path) -> Result<bool, io::Error> {
             fs::copy(&entry_path, &dest_path)?;
         }
     }
-
     println!(
-        "Copied source {} to destination {} successfully",
+        "Copied source: {} to Destination: {}",
         source.display(),
         destination.display()
     );
@@ -213,19 +207,18 @@ fn copy_folder(source: &Path, destination: &Path) -> Result<bool, io::Error> {
 #[tauri::command]
 async fn async_snapshot(
     invoke_message: &str,
-    state: tauri::State<'_, Arc<TokioMutex<AppState>>>, // Use Arc<TokioMutex<AppState>>
-                                                        // state: tauri::State<'_, tokio::sync::Mutex<AppState>>,
+    state: tauri::State<'_, Arc<TokioMutex<AppState>>>,
 ) -> Result<bool, String> {
     // Put snapshot name into state
-    let mut app_state = state.lock().await; // Use tokio::sync::Mutex
+    let mut app_state = state.lock().await;
     app_state.snapshot_name = invoke_message.to_string();
 
-    let input_folder = app_state.input_folder.clone(); // Clone the input folder
-    let source: PathBuf = PathBuf::from(input_folder); // Convert to PathBuf
+    let input_folder = app_state.input_folder.clone(); // Clone the input folder path
+    let source: PathBuf = PathBuf::from(input_folder); // Create PathBuf
 
-    let snapshot_folder = app_state.snapshot_folder.clone(); // Clone the snapshot folder
-    let dst: PathBuf = PathBuf::from(snapshot_folder); // create pathbuf
-    let destination = dst.join(app_state.snapshot_name.clone()); // add snapshot name
+    let snapshot_folder = app_state.snapshot_folder.clone(); // Clone the snapshot folder path
+    let dst: PathBuf = PathBuf::from(snapshot_folder); // Create Pathbuf
+    let destination = dst.join(app_state.snapshot_name.clone()); // Add snapshot name
                                                                  // Try to back up the folder
     task::spawn_blocking(move || copy_folder(&source, &destination))
         .await
@@ -235,12 +228,10 @@ async fn async_snapshot(
 
 async fn callback_loop(
     source: PathBuf,
-    // destination: PathBuf,
     count: u32,
     backup_time: u32,
     backup_number: u32,
     app: AppHandle,
-    // mut success_tx: tokio::sync::mpsc::Sender<bool>, // Channel to send success signals
     state: Arc<TokioMutex<AppState>>, // Use Arc to share state
 ) {
     loop {
@@ -250,16 +241,15 @@ async fn callback_loop(
             let current_count = app_state.count;
             let backup_status = app_state.backup_status;
             let backup_folder = app_state.backup_folder.clone();
-            let dst: PathBuf = PathBuf::from(backup_folder); // Convert to PathBuf
-                                                             //     dst = format!("{}\\backup {}", backup_folder, i + 1);
+            let dst: PathBuf = PathBuf::from(backup_folder); // Create PathBuf
             let destination = dst.join(format!("backup {}", i + 1)); // add backup number
-
             drop(app_state); // Release the lock before sleeping or performing backups
+
             if count != current_count || !backup_status {
-                println!("Stopping internal loop as count has changed.");
+                // println!("Stopping internal loop as count has changed.");
                 break;
             }
-            println!("Starting backup {}: count {}", i, count);
+            // println!("Starting backup {}: count {}", i, count);
 
             // Attempt to copy the folder and log the result
             match copy_folder(&source, &destination) {
@@ -268,17 +258,20 @@ async fn callback_loop(
             }
 
             // Send the backup success to the frontend
-            let message = format!("Backup {} saved", i);
+            let message = format!("Backup {} saved", i + 1);
             app.emit("backup-saved", message.to_string()).unwrap();
 
             // Wait for the next backup interval
-            println!("Waiting for {} minutes", backup_time);
-            sleep(Duration::from_secs(backup_time as u64)).await; // Seconds
-            // sleep(Duration::from_secs(backup_time.checked_mul(60).expect("backup_time * 60 overflowed") as u64,)).await; // Minutes
+            // println!("Waiting for {} minutes", backup_time);
+            // sleep(Duration::from_secs(backup_time as u64)).await; // Seconds
+            sleep(Duration::from_secs(
+                backup_time
+                    .checked_mul(60)
+                    .expect("backup_time * 60 overflowed") as u64,
+            ))
+            .await; // Minutes
         }
-
-        println!("Backup loop iteration completed.");
-        // break;
+        // println!("Backup loop iteration completed.");
 
         // Check if the count has changed, indicating the loop should stop
         let app_state = state.lock().await;
@@ -288,7 +281,7 @@ async fn callback_loop(
             println!("Stopping external loop as count has changed.");
             break;
         }
-        drop(app_state); // Release the lock before sleeping or performing backups
+        drop(app_state); // Release lock
     }
 }
 
@@ -298,12 +291,11 @@ async fn async_backup(
     backup_time: u32,
     backup_number: u32,
     backup_status: bool,
-    // state: tauri::State<'_, TokioMutex<AppState>>, // Use tokio::sync::Mutex
     app: AppHandle,
-    state: tauri::State<'_, Arc<TokioMutex<AppState>>>, // Use Arc<TokioMutex<AppState>>
+    state: tauri::State<'_, Arc<TokioMutex<AppState>>>,
 ) -> Result<bool, String> {
     // Put backup times into state
-    let mut app_state = state.lock().await; // Use tokio::sync::Mutex
+    let mut app_state = state.lock().await;
     app_state.backup_time = backup_time;
     app_state.backup_number = backup_number;
     app_state.count += 1;
@@ -311,16 +303,10 @@ async fn async_backup(
 
     if backup_status {
         let input_folder = app_state.input_folder.clone(); // Clone the input folder
-        let source: PathBuf = PathBuf::from(input_folder); // Convert to PathBuf
-
-        let count = app_state.count.clone(); // Clone the count
-
-        // Create a channel to communicate success signals
-        // let (success_tx, mut success_rx) = tokio::sync::mpsc::channel(backup_number as usize);
-
-        // Wrap the state in an Arc to share it across threads
+        let source: PathBuf = PathBuf::from(input_folder); // Create PathBuf
+        let count = app_state.count.clone(); // Clone count
+                                             // Wrap the state in an Arc to share it across threads
         let state_arc = state.inner().clone();
-
         // Spawn the callback loop
         tokio::spawn(callback_loop(
             source,
@@ -333,7 +319,6 @@ async fn async_backup(
             state_arc,
         ));
     }
-
     Ok(true)
 }
 
@@ -359,8 +344,7 @@ async fn profile_picker(invoke_message: &str, profile_dir: PathBuf) -> Option<St
 async fn async_save_profile(
     invoke_message: &str,
     data: AppProfile,
-    state: tauri::State<'_, Arc<TokioMutex<AppState>>>, // Use Arc<TokioMutex<AppState>>
-                                                        // state: tauri::State<'_, tokio::sync::Mutex<AppState>>,
+    state: tauri::State<'_, Arc<TokioMutex<AppState>>>,
 ) -> Result<String, String> {
     println!("lib.rs:335: data={:#?}", data);
 
@@ -376,6 +360,7 @@ async fn async_save_profile(
         fs::create_dir_all(&profile_dir).map_err(|e| e.to_string())?;
     }
 
+    // Profile data to be saved in toml
     let mut profile_data = AppProfile {
         input_folder: app_state.input_folder.clone(),
         backup_folder: app_state.backup_folder.clone(),
@@ -426,14 +411,13 @@ async fn async_save_profile(
     } else {
         Err("Unknown invoke_message".to_string())
     }
-    // Ok("test".to_string())
 }
 
 // An async function to load a profile
 #[tauri::command]
 async fn async_load_profile(
     invoke_message: &str,
-    state: tauri::State<'_, Arc<TokioMutex<AppState>>>, // Use Arc<TokioMutex<AppState>>
+    state: tauri::State<'_, Arc<TokioMutex<AppState>>>,
 ) -> Result<AppProfile, String> {
     let mut app_state = state.lock().await;
     let profile_dir = app_state.exe_dir.join("profiles");
@@ -441,11 +425,11 @@ async fn async_load_profile(
     if invoke_message == "load" {
         let profile = profile_picker(invoke_message, profile_dir).await;
         if let Some(ref path) = profile {
-            println!("Profile path: {}", path);
+            // println!("Profile path: {}", path);
             // Read the profile data from a toml file
             let toml_str = fs::read_to_string(path).map_err(|e| e.to_string())?;
             let profile_data: AppProfile = toml::from_str(&toml_str).map_err(|e| e.to_string())?;
-            println!("Profile Data: {:?}", profile_data);
+            // println!("Profile Data: {:?}", profile_data);
             app_state.input_folder = profile_data.input_folder.clone();
             app_state.backup_folder = profile_data.backup_folder.clone();
             app_state.snapshot_folder = profile_data.snapshot_folder.clone();
@@ -463,7 +447,6 @@ async fn async_load_profile(
     } else {
         Err("Unknown invoke_message".to_string())
     }
-    // Ok("test".to_string())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
