@@ -1,30 +1,14 @@
 // Imports
 use rfd::FileDialog;
 use std::path::PathBuf;
-// use tauri::ipc::Response;
 use tauri::Manager;
-// use tauri::{AppHandle, Emitter};
-// use tauri::State;
-// use std::sync::Mutex;
-// use tauri::{
-// Builder,
-// Manager
-// };
+use tauri::{AppHandle, Emitter};
 use io::Write;
 use std::env;
 use std::fs;
 use std::io;
 use std::path::Path;
 use std::sync::Arc;
-// use std::thread;
-// use tokio::fs;
-// use tokio::io;
-// use std::pin::Pin;
-// use std::future::Future;
-// use global_hotkey::{
-//     hotkey::{Code, HotKey, Modifiers},
-//     GlobalHotKeyEvent, GlobalHotKeyManager,
-// };
 use serde::{Deserialize, Serialize};
 // use tokio::runtime::Handle;
 use tokio::sync::Mutex as TokioMutex;
@@ -255,6 +239,7 @@ async fn callback_loop(
     count: u32,
     backup_time: u32,
     backup_number: u32,
+    app: AppHandle,
     // mut success_tx: tokio::sync::mpsc::Sender<bool>, // Channel to send success signals
     state: Arc<TokioMutex<AppState>>, // Use Arc to share state
 ) {
@@ -282,15 +267,14 @@ async fn callback_loop(
                 Err(e) => eprintln!("Error during backup {}: {}", i, e),
             }
 
+            // Send the backup success to the frontend
+            let message = format!("Backup {} saved", i);
+            app.emit("backup-saved", message.to_string()).unwrap();
+
             // Wait for the next backup interval
             println!("Waiting for {} minutes", backup_time);
-            // sleep(Duration::from_secs(backup_time as u64)).await; // Seconds
-            sleep(Duration::from_secs(
-                backup_time
-                    .checked_mul(60)
-                    .expect("backup_time * 60 overflowed") as u64,
-            ))
-            .await; // Minutes
+            sleep(Duration::from_secs(backup_time as u64)).await; // Seconds
+            // sleep(Duration::from_secs(backup_time.checked_mul(60).expect("backup_time * 60 overflowed") as u64,)).await; // Minutes
         }
 
         println!("Backup loop iteration completed.");
@@ -315,6 +299,7 @@ async fn async_backup(
     backup_number: u32,
     backup_status: bool,
     // state: tauri::State<'_, TokioMutex<AppState>>, // Use tokio::sync::Mutex
+    app: AppHandle,
     state: tauri::State<'_, Arc<TokioMutex<AppState>>>, // Use Arc<TokioMutex<AppState>>
 ) -> Result<bool, String> {
     // Put backup times into state
@@ -344,6 +329,7 @@ async fn async_backup(
             backup_time,
             backup_number,
             // success_tx,
+            app,
             state_arc,
         ));
     }

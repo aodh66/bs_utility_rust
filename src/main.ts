@@ -1,6 +1,10 @@
-import { invoke } from "@tauri-apps/api/core";
+// import { invoke } from "@tauri-apps/api/core";
+import {
+    invoke,
+    Channel
+} from '@tauri-apps/api/core';
 // import { register } from '@tauri-apps/plugin-global-shortcut';
-// import { listen } from '@tauri-apps/api/event';
+import { listen } from '@tauri-apps/api/event';
 
 type Params = {
     inputFolder: string;
@@ -239,6 +243,12 @@ function asyncSnapshot() {
             });
     }
 }
+
+// Tauri listener to relay backup saves
+listen<string>('backup-saved', (event) => {
+    notify("m", event.payload);
+});
+
 
 function asyncBackup() {
     let backupTime = params.backupTime;
