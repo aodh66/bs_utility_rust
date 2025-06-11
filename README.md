@@ -6,7 +6,7 @@ This is a simple utility to save and snapshot a folder. The original intent was 
 
 Despite the tongue in cheek name of bs-utility, I am not a fan of bs, and I want to keep this project simple and streamlined, for the best user experience.
 
-![alt text](https://github.com/aodh66/bs_utility_rust/blob/main/images/bs-utility_rust.webp?raw=true)
+![alt text](https://github.com/aodh66/bs_utility_rust/blob/main/images/bs-utility_rust.png?raw=true)
 
 ## Features
 - Backup input folder to chosen output folder.
